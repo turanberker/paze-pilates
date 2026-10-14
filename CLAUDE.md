@@ -72,7 +72,7 @@ Maven plugin veya script ile native Windows EXE üretir. JRE pakete dahildir; ku
 9. Gereksiz soyutlamadan kaçın; özellikle MVP aşamasında.
 10. Ekrana yazdırılan her metin ResourceBundle üzerinden gelir.
 11. Katmanlı mimari uygula. Frontend ve backend ayrı projeler aç. MultiModule oluştur.
-12. Durum değiştiren iş işlemleri (ödeme alma, iptal, pasife alma vb.) genel `save`/`update` ucu üzerinden yapılmaz; her biri için amaca özel servis metodu yazılır.
+12. **Servis kuralı:** Durum değiştiren iş işlemleri (ödeme alma, iptal, pasife alma vb.) genel `save`/`update` ucu üzerinden yapılmaz; her biri için amaca özel servis metodu yazılır.
     - Yanlış: UI'da `dto.setPaid(true); dto.setPaymentDate(today); service.update(dto)`
     - Doğru: UI `service.completePayment(id, paymentDate)` çağırır; servis kaydı `findById` ile getirir, kuralları kontrol eder, alanları set eder ve kaydeder.
 ## 5. Uygulama kapsamı (MVP)

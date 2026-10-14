@@ -54,8 +54,8 @@ class SessionPackageServiceImplTest {
     }
 
     @Test
-    @DisplayName("save: güncellemede aktiflik durumu değişir")
-    void save_existing_updatesActive() {
+    @DisplayName("save: güncellemede tanım alanları değişir, aktiflik değişmez")
+    void save_existing_keepsActive() {
         SessionPackage existing = new SessionPackage("Eski", BigDecimal.TEN, 4, START);
         when(repository.findById(5L)).thenReturn(Optional.of(existing));
         when(repository.save(any(SessionPackage.class))).thenAnswer(i -> i.getArgument(0));
@@ -64,8 +64,29 @@ class SessionPackageServiceImplTest {
                 new SessionPackageDto(5L, "Yeni", BigDecimal.ONE, 12, START, false));
 
         assertThat(result.name()).isEqualTo("Yeni");
-        assertThat(result.active()).isFalse();
+        assertThat(result.active()).isTrue();
         assertThat(result.sessionCount()).isEqualTo(12);
+    }
+
+    @Test
+    @DisplayName("deactivate / activate: kayıt getirilir ve aktiflik değişir")
+    void deactivateAndActivate_toggleActive() {
+        SessionPackage existing = new SessionPackage("Paket", BigDecimal.TEN, 4, START);
+        when(repository.findById(5L)).thenReturn(Optional.of(existing));
+        when(repository.save(any(SessionPackage.class))).thenAnswer(i -> i.getArgument(0));
+
+        assertThat(service.deactivate(5L).active()).isFalse();
+        assertThat(service.activate(5L).active()).isTrue();
+    }
+
+    @Test
+    @DisplayName("deactivate: olmayan paket için hata")
+    void deactivate_unknownId_throws() {
+        when(repository.findById(9L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deactivate(9L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("package.error.not_found");
     }
 
     @Test

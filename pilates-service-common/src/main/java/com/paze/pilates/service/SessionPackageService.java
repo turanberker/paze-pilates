@@ -12,9 +12,16 @@ public interface SessionPackageService {
     List<SessionPackageDto> findActive();
 
     /**
-     * Yeni paket oluşturur veya mevcut olanı günceller.
+     * Yeni paket oluşturur veya mevcut olanın tanım alanlarını günceller.
+     * Aktiflik durumu burada değişmez; {@link #activate} / {@link #deactivate} kullanılır.
      *
      * @throws com.paze.pilates.dto.BusinessException doğrulama hatasında
      */
     SessionPackageDto save(SessionPackageDto dto);
+
+    /** Paketi aktife alır; yeni atamalarda seçilebilir olur. */
+    SessionPackageDto activate(Long id);
+
+    /** Paketi pasife alır; mevcut atamalar etkilenmez, yeni atama yapılamaz. */
+    SessionPackageDto deactivate(Long id);
 }

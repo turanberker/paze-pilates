@@ -18,7 +18,6 @@ import java.util.Date;
 import java.util.Locale;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -42,7 +41,6 @@ public class PackageFormDialog extends JDialog {
     private JTextField priceField;
     private JSpinner   sessionSpinner;
     private JSpinner   startDateSpinner;
-    private JCheckBox  activeCheck;
     private JLabel     errorLabel;
 
     private SessionPackageDto saved;
@@ -101,10 +99,6 @@ public class PackageFormDialog extends JDialog {
         fld.gridy = row++;
         form.add(startDateSpinner, fld);
 
-        activeCheck = new JCheckBox(text("package.form.label.active"), true);
-        fld.gridy = row++;
-        form.add(activeCheck, fld);
-
         errorLabel = new JLabel(" ");
         errorLabel.setForeground(Color.decode("#DC2626"));
         GridBagConstraints errFld = new GridBagConstraints();
@@ -149,7 +143,7 @@ public class PackageFormDialog extends JDialog {
                 price,
                 (Integer) sessionSpinner.getValue(),
                 startDate,
-                activeCheck.isSelected());
+                editing == null || editing.active());
 
         try {
             saved = packageService.save(dto);
@@ -192,7 +186,6 @@ public class PackageFormDialog extends JDialog {
         sessionSpinner.setValue(pkg.sessionCount());
         startDateSpinner.setValue(
                 Date.from(pkg.startDate().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-        activeCheck.setSelected(pkg.active());
         setVisible(true);
         return saved;
     }
