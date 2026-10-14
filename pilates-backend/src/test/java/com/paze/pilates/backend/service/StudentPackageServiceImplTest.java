@@ -1,5 +1,6 @@
 package com.paze.pilates.backend.service;
 
+import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.SessionPackage;
 import com.paze.pilates.backend.domain.Student;
 import com.paze.pilates.backend.domain.StudentPackage;
@@ -47,7 +48,8 @@ class StudentPackageServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new StudentPackageServiceImpl(repository, studentRepository, packageRepository);
+        service = new StudentPackageServiceImpl(repository, studentRepository, packageRepository,
+                TestSecurity.adminGuard());
         student = new Student("Ayşe", "Yılmaz");
         pkg = new SessionPackage("8'li Paket", new BigDecimal("1500"), 8, TODAY);
     }

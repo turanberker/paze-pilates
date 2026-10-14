@@ -1,7 +1,10 @@
 package com.paze.pilates.backend.service;
 
 import com.paze.pilates.backend.domain.Instructor;
+import com.paze.pilates.backend.repository.AppUserRepository;
 import com.paze.pilates.backend.repository.InstructorRepository;
+import com.paze.pilates.backend.security.PermissionGuard;
+import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.InstructorDto;
 import com.paze.pilates.service.InstructorService;
@@ -15,14 +18,20 @@ public class InstructorServiceImpl implements InstructorService {
     private static final int NAME_MAX_LENGTH = 50;
 
     private final InstructorRepository instructorRepository;
+    private final AppUserRepository userRepository;
+    private final PermissionGuard guard;
 
-    public InstructorServiceImpl(InstructorRepository instructorRepository) {
+    public InstructorServiceImpl(InstructorRepository instructorRepository, AppUserRepository userRepository,
+                                 PermissionGuard guard) {
         this.instructorRepository = instructorRepository;
+        this.userRepository = userRepository;
+        this.guard = guard;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<InstructorDto> getInstructors() {
+        guard.require(Permission.INSTRUCTOR_MANAGE);
         return instructorRepository.findByActiveTrueOrderByFirstNameAscLastNameAsc()
                 .stream()
                 .map(InstructorServiceImpl::toDto)
@@ -32,6 +41,7 @@ public class InstructorServiceImpl implements InstructorService {
     @Override
     @Transactional
     public InstructorDto saveInstructor(InstructorDto dto) {
+        guard.require(Permission.INSTRUCTOR_MANAGE);
         String firstName = normalize(dto.firstName(), "instructor.error.first_name_required",
                 "instructor.error.first_name_too_long");
         String lastName = normalize(dto.lastName(), "instructor.error.last_name_required",
@@ -49,13 +59,18 @@ public class InstructorServiceImpl implements InstructorService {
         return toDto(instructorRepository.save(instructor));
     }
 
-    /** Hoca pasife alınır; ileride derslerde kullanılan kayıtlar bozulmaz. */
+    /** Hoca pasife alınır; derslerde kullanılan kayıtlar bozulmaz, bağlı kullanıcısı da pasife alınır. */
     @Override
     @Transactional
     public void deleteInstructor(Long id) {
+        guard.require(Permission.INSTRUCTOR_MANAGE);
         instructorRepository.findById(id).ifPresent(instructor -> {
             instructor.setActive(false);
             instructorRepository.save(instructor);
+            userRepository.findByInstructorId(id).ifPresent(user -> {
+                user.setActive(false);
+                userRepository.save(user);
+            });
         });
     }
 

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.Instructor;
 import com.paze.pilates.backend.domain.Lesson;
 import com.paze.pilates.backend.domain.LessonParticipant;
@@ -56,7 +57,7 @@ class LessonServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new LessonServiceImpl(lessonRepository, instructorRepository, roomRepository,
-                participantRepository, studentRepository);
+                participantRepository, studentRepository, TestSecurity.adminGuard());
         instructor = new Instructor("Ayşe", "Yılmaz");
         room = new Room("Reformer Salonu", 6);
     }
@@ -272,5 +273,50 @@ class LessonServiceImplTest {
 
         assertThatThrownBy(() -> service.removeParticipant(9L))
                 .hasMessage("lesson.error.participant_not_found");
+    }
+
+    @Test
+    void findBetween_instructorSeesOnlyOwnLessons() {
+        Instructor other = new Instructor("Veli", "Can");
+        org.springframework.test.util.ReflectionTestUtils.setField(other, "id", 9L);
+        org.springframework.test.util.ReflectionTestUtils.setField(instructor, "id", 7L);
+        Lesson own = new Lesson(instructor, room, DATE, START, END);
+        Lesson foreign = new Lesson(other, room, DATE, START.plusHours(2), END.plusHours(2));
+        org.springframework.test.util.ReflectionTestUtils.setField(own, "id", 100L);
+        org.springframework.test.util.ReflectionTestUtils.setField(foreign, "id", 101L);
+        when(lessonRepository.findBetween(DATE, DATE)).thenReturn(java.util.List.of(own, foreign));
+        when(participantRepository.countByLessonIds(java.util.List.of(100L))).thenReturn(java.util.List.of());
+        LessonServiceImpl asInstructor = new LessonServiceImpl(lessonRepository, instructorRepository,
+                roomRepository, participantRepository, studentRepository,
+                TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)));
+
+        assertThat(asInstructor.findBetween(DATE, DATE)).extracting(LessonDto::id).containsExactly(100L);
+    }
+
+    @Test
+    void getParticipants_instructorCannotSeeOthersLesson() {
+        Instructor other = new Instructor("Veli", "Can");
+        org.springframework.test.util.ReflectionTestUtils.setField(other, "id", 9L);
+        Lesson foreign = new Lesson(other, room, DATE, START, END);
+        when(lessonRepository.findById(101L)).thenReturn(Optional.of(foreign));
+        LessonServiceImpl asInstructor = new LessonServiceImpl(lessonRepository, instructorRepository,
+                roomRepository, participantRepository, studentRepository,
+                TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)));
+
+        assertThatThrownBy(() -> asInstructor.getParticipants(101L))
+                .isInstanceOf(BusinessException.class).hasMessage("auth.error.forbidden");
+        verify(participantRepository, never()).findByLessonId(any());
+    }
+
+    @Test
+    void managementMethods_forbiddenForInstructor() {
+        LessonServiceImpl asInstructor = new LessonServiceImpl(lessonRepository, instructorRepository,
+                roomRepository, participantRepository, studentRepository,
+                TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)));
+
+        assertThatThrownBy(() -> asInstructor.openLesson(1L, 1L, DATE, START, END))
+                .hasMessage("auth.error.forbidden");
+        assertThatThrownBy(() -> asInstructor.addParticipant(1L, 1L)).hasMessage("auth.error.forbidden");
+        assertThatThrownBy(() -> asInstructor.removeParticipant(1L)).hasMessage("auth.error.forbidden");
     }
 }
