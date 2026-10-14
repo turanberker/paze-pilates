@@ -3,7 +3,7 @@ package com.paze.pilates.desktop;
 import com.paze.pilates.desktop.ui.finance.PaymentPanel;
 import com.paze.pilates.desktop.ui.instructor.InstructorListPanel;
 import com.paze.pilates.desktop.ui.main.DashboardPanel;
-import com.paze.pilates.desktop.ui.main.MainMenuPanel;
+import com.paze.pilates.desktop.ui.main.MainMenuBar;
 import com.paze.pilates.desktop.ui.report.ReportPanel;
 import com.paze.pilates.desktop.ui.reservation.CalendarPanel;
 import com.paze.pilates.desktop.ui.shared.NotificationBar;
@@ -15,7 +15,6 @@ import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Locale;
-import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -31,7 +30,7 @@ public class MainFrame extends JFrame {
 
     private final ConfigurableApplicationContext context;
     private final MessageSource messages;
-    private final MainMenuPanel menuPanel;
+    private final MainMenuBar menuBar;
     private final NotificationBar notificationBar;
 
     private final DashboardPanel dashboardPanel;
@@ -48,7 +47,7 @@ public class MainFrame extends JFrame {
     public MainFrame(
             ConfigurableApplicationContext context,
             MessageSource messages,
-            MainMenuPanel menuPanel,
+            MainMenuBar menuBar,
             NotificationBar notificationBar,
             DashboardPanel dashboardPanel,
             StudioPanel studioPanel,
@@ -60,7 +59,7 @@ public class MainFrame extends JFrame {
 
         this.context = context;
         this.messages = messages;
-        this.menuPanel = menuPanel;
+        this.menuBar = menuBar;
         this.notificationBar = notificationBar;
         this.dashboardPanel = dashboardPanel;
         this.studioPanel = studioPanel;
@@ -88,16 +87,16 @@ public class MainFrame extends JFrame {
         contentCards.add(paymentPanel,   "finance");
         contentCards.add(reportPanel,    "report");
 
-        JPanel rightSide = new JPanel();
-        rightSide.setLayout(new BoxLayout(rightSide, BoxLayout.Y_AXIS));
-        rightSide.add(notificationBar);
-        rightSide.add(contentCards);
-        rightSide.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.add(notificationBar);
+        content.add(contentCards);
 
-        menuPanel.setNavCallback(this::showPanel);
+        menuBar.setNavCallback(this::showPanel);
+        menuBar.setExitCallback(this::dispose);
+        setJMenuBar(menuBar);
 
-        add(menuPanel, BorderLayout.WEST);
-        add(rightSide, BorderLayout.CENTER);
+        add(content, BorderLayout.CENTER);
 
         showPanel("dashboard");
 
@@ -112,7 +111,6 @@ public class MainFrame extends JFrame {
 
     public void showPanel(String name) {
         cardLayout.show(contentCards, name);
-        menuPanel.setActive(name);
     }
 
     public void showSuccess(String message) {
