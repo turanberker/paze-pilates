@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.AppUser;
 import com.paze.pilates.backend.domain.Studio;
 import com.paze.pilates.backend.repository.AppUserRepository;
@@ -40,7 +41,7 @@ class SetupServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new SetupServiceImpl(userRepository, studioRepository, encoder,
-                new StaticAdminProperties("sistem", ""));
+                new StaticAdminProperties("sistem", ""), TestSecurity.defaultPasswordPolicy());
     }
 
     private static SetupRequestDto request(String password, String confirm) {
@@ -115,7 +116,7 @@ class SetupServiceImplTest {
     void isStaticAdminAvailable_requiresHash() {
         assertThat(service.isStaticAdminAvailable()).isFalse();
         SetupServiceImpl enabled = new SetupServiceImpl(userRepository, studioRepository, encoder,
-                new StaticAdminProperties("sistem", encoder.encode("x")));
+                new StaticAdminProperties("sistem", encoder.encode("x")), TestSecurity.defaultPasswordPolicy());
         assertThat(enabled.isStaticAdminAvailable()).isTrue();
     }
 }

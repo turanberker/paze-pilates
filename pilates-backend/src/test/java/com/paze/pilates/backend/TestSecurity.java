@@ -2,6 +2,8 @@ package com.paze.pilates.backend;
 
 import com.paze.pilates.backend.security.CurrentUser;
 import com.paze.pilates.backend.security.FixedRolePermissionResolver;
+import com.paze.pilates.backend.security.PasswordPolicy;
+import com.paze.pilates.backend.security.PasswordPolicyProperties;
 import com.paze.pilates.backend.security.PermissionGuard;
 import com.paze.pilates.backend.security.SessionContext;
 import com.paze.pilates.dto.UserRole;
@@ -10,6 +12,11 @@ import com.paze.pilates.dto.UserRole;
 public final class TestSecurity {
 
     private TestSecurity() {
+    }
+
+    /** Varsayılan kural: yalnızca en az 8 karakter. */
+    public static PasswordPolicy defaultPasswordPolicy() {
+        return new PasswordPolicy(new PasswordPolicyProperties(null, false, false, false, false));
     }
 
     public static PermissionGuard guardFor(CurrentUser user) {

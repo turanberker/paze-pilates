@@ -247,7 +247,7 @@ public class UserFormDialog extends JDialog {
                     dispose();
                 } catch (ExecutionException ex) {
                     if (ex.getCause() instanceof BusinessException be) {
-                        errorLabel.setText(text(be.getMessage()));
+                        errorLabel.setText(text(be));
                     } else {
                         log.error("Kullanıcı kaydedilemedi", ex.getCause());
                         errorLabel.setText(text("error.unexpected"));
@@ -257,6 +257,10 @@ public class UserFormDialog extends JDialog {
                 }
             }
         }.execute();
+    }
+
+    private String text(BusinessException be) {
+        return messages.getMessage(be.getMessage(), be.getArgs(), be.getMessage(), Locale.getDefault());
     }
 
     private String text(String key) {

@@ -19,6 +19,7 @@ _Son güncelleme: 2026-10-14_
   - ✅ Tanımlamalar > Kullanıcılar: hoca için kullanıcı aç, geçici şifre, ilk girişte şifre değiştirme, şifre sıfırlama, rol değiştirme, pasife alma
   - ✅ Son aktif yönetici korunur; hoca pasife alınınca kullanıcısı da pasife alınır
   - ✅ Sabit (static) admin: `paze.security.static-admin.*`, bcrypt hash `application-local.yml` veya `PAZE_STATIC_ADMIN_PASSWORD_HASH`; hash üretmek için `--hash-password=<şifre>`
+  - ✅ Şifre kuralları `paze.security.password.*` ile yml'den ayarlanır (uzunluk, büyük/küçük harf, rakam, özel karakter)
   - ✅ Hoca kendi derslerini ve katılımcılarını salt okunur görür; öğrenci tanımlayabilir
 
 ## ⬜ Planlananlar

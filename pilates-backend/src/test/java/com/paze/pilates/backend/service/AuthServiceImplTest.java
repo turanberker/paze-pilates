@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.AppUser;
 import com.paze.pilates.backend.repository.AppUserRepository;
 import com.paze.pilates.backend.security.FixedRolePermissionResolver;
@@ -41,7 +42,8 @@ class AuthServiceImplTest {
     }
 
     private AuthServiceImpl newService(StaticAdminProperties staticAdmin) {
-        return new AuthServiceImpl(userRepository, encoder, session, new FixedRolePermissionResolver(), staticAdmin);
+        return new AuthServiceImpl(userRepository, encoder, session, new FixedRolePermissionResolver(), staticAdmin,
+                TestSecurity.defaultPasswordPolicy());
     }
 
     private AppUser user(String username, String password, UserRole role, boolean active) {

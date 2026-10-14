@@ -44,7 +44,7 @@ class UserServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new UserServiceImpl(userRepository, instructorRepository, encoder,
-                TestSecurity.adminGuard(), staticAdmin);
+                TestSecurity.adminGuard(), staticAdmin, TestSecurity.defaultPasswordPolicy());
         instructor = new Instructor("Ayşe", "Yılmaz");
         ReflectionTestUtils.setField(instructor, "id", 7L);
     }
@@ -215,7 +215,8 @@ class UserServiceImplTest {
     @Test
     void allMethods_forbiddenForInstructorRole() {
         UserServiceImpl restricted = new UserServiceImpl(userRepository, instructorRepository, encoder,
-                TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)), staticAdmin);
+                TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)), staticAdmin,
+                TestSecurity.defaultPasswordPolicy());
 
         assertThatThrownBy(restricted::findAll).hasMessage("auth.error.forbidden");
         assertThatThrownBy(() -> restricted.createUser("x", "y", UserRole.ADMIN, null, "gecici1234"))

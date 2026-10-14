@@ -10,6 +10,14 @@ paze:
     static-admin:
       username: sistem
       password-hash: ${PAZE_STATIC_ADMIN_PASSWORD_HASH:}
+    # Uygulamada belirlenen şifrelerin kuralları (kurulum, kullanıcı açma, sıfırlama, şifre değiştirme).
+    # Sabit admin şifresi yalnızca hash olarak verildiği için bu kurallara tabi değildir.
+    password:
+      min-length: 8
+      require-uppercase: false
+      require-lowercase: false
+      require-digit: false
+      require-special: false
 
 spring:
   application:

@@ -24,15 +24,18 @@ public class SetupServiceImpl implements SetupService {
     private final StudioRepository studioRepository;
     private final PasswordEncoder passwordEncoder;
     private final StaticAdminProperties staticAdmin;
+    private final PasswordPolicy passwordPolicy;
 
     public SetupServiceImpl(AppUserRepository userRepository,
                             StudioRepository studioRepository,
                             PasswordEncoder passwordEncoder,
-                            StaticAdminProperties staticAdmin) {
+                            StaticAdminProperties staticAdmin,
+                            PasswordPolicy passwordPolicy) {
         this.userRepository = userRepository;
         this.studioRepository = studioRepository;
         this.passwordEncoder = passwordEncoder;
         this.staticAdmin = staticAdmin;
+        this.passwordPolicy = passwordPolicy;
     }
 
     @Override
@@ -57,7 +60,7 @@ public class SetupServiceImpl implements SetupService {
         String fullName = required(request.adminFullName(), "setup.error.full_name_required",
                 "setup.error.full_name_too_long");
         String username = UsernamePolicy.normalize(request.username(), staticAdmin);
-        PasswordPolicy.validate(request.password(), request.passwordConfirm());
+        passwordPolicy.validate(request.password(), request.passwordConfirm());
 
         studioRepository.findFirstByOrderByIdAsc().ifPresentOrElse(
                 studio -> {

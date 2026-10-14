@@ -133,7 +133,7 @@ public class ChangePasswordDialog extends JDialog {
                     dispose();
                 } catch (ExecutionException ex) {
                     if (ex.getCause() instanceof BusinessException be) {
-                        errorLabel.setText(text(be.getMessage()));
+                        errorLabel.setText(text(be));
                     } else {
                         log.error("Şifre değiştirilemedi", ex.getCause());
                         errorLabel.setText(text("error.unexpected"));
@@ -143,6 +143,10 @@ public class ChangePasswordDialog extends JDialog {
                 }
             }
         }.execute();
+    }
+
+    private String text(BusinessException be) {
+        return messages.getMessage(be.getMessage(), be.getArgs(), be.getMessage(), Locale.getDefault());
     }
 
     private String text(String key) {

@@ -29,17 +29,20 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final PermissionGuard guard;
     private final StaticAdminProperties staticAdmin;
+    private final PasswordPolicy passwordPolicy;
 
     public UserServiceImpl(AppUserRepository userRepository,
                            InstructorRepository instructorRepository,
                            PasswordEncoder passwordEncoder,
                            PermissionGuard guard,
-                           StaticAdminProperties staticAdmin) {
+                           StaticAdminProperties staticAdmin,
+                           PasswordPolicy passwordPolicy) {
         this.userRepository = userRepository;
         this.instructorRepository = instructorRepository;
         this.passwordEncoder = passwordEncoder;
         this.guard = guard;
         this.staticAdmin = staticAdmin;
+        this.passwordPolicy = passwordPolicy;
     }
 
     @Override
@@ -61,7 +64,7 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByUsername(normalized)) {
             throw new BusinessException("user.error.username_taken");
         }
-        PasswordPolicy.validate(temporaryPassword, null);
+        passwordPolicy.validate(temporaryPassword, null);
 
         Instructor instructor = null;
         String name;
@@ -92,7 +95,7 @@ public class UserServiceImpl implements UserService {
     public UserDto resetPassword(Long userId, String temporaryPassword) {
         guard.require(Permission.USER_MANAGE);
         AppUser user = find(userId);
-        PasswordPolicy.validate(temporaryPassword, null);
+        passwordPolicy.validate(temporaryPassword, null);
         user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
         user.setMustChangePassword(true);
         return toDto(userRepository.save(user));

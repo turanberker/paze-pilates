@@ -24,17 +24,20 @@ public class AuthServiceImpl implements AuthService {
     private final SessionContext session;
     private final RolePermissionResolver permissionResolver;
     private final StaticAdminProperties staticAdmin;
+    private final PasswordPolicy passwordPolicy;
 
     public AuthServiceImpl(AppUserRepository userRepository,
                            PasswordEncoder passwordEncoder,
                            SessionContext session,
                            RolePermissionResolver permissionResolver,
-                           StaticAdminProperties staticAdmin) {
+                           StaticAdminProperties staticAdmin,
+                           PasswordPolicy passwordPolicy) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.session = session;
         this.permissionResolver = permissionResolver;
         this.staticAdmin = staticAdmin;
+        this.passwordPolicy = passwordPolicy;
     }
 
     @Override
@@ -90,7 +93,7 @@ public class AuthServiceImpl implements AuthService {
         if (currentPassword == null || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new BusinessException("auth.error.current_password_wrong");
         }
-        PasswordPolicy.validate(newPassword, newPasswordConfirm);
+        passwordPolicy.validate(newPassword, newPasswordConfirm);
         if (newPassword.equals(currentPassword)) {
             throw new BusinessException("password.error.same_as_current");
         }
