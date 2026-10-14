@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- Takvimde açılan dersler (hoca + oda + gün + saat aralığı) -->
+    <changeSet id="1.0.0-005-lesson" author="berker">
+        <createTable tableName="lesson">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="instructor_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_lesson_instructor"
+                             referencedTableName="instructor" referencedColumnNames="id"/>
+            </column>
+            <column name="room_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_lesson_room"
+                             referencedTableName="room" referencedColumnNames="id"/>
+            </column>
+            <column name="lesson_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="start_time" type="TIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="end_time" type="TIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP(6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP(6)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <sql>ALTER TABLE lesson ADD CONSTRAINT ck_lesson_time CHECK (start_time &lt; end_time)</sql>
+        <createIndex tableName="lesson" indexName="ix_lesson_date">
+            <column name="lesson_date"/>
+        </createIndex>
+        <createIndex tableName="lesson" indexName="ix_lesson_room_date">
+            <column name="room_id"/>
+            <column name="lesson_date"/>
+        </createIndex>
+        <createIndex tableName="lesson" indexName="ix_lesson_instructor_date">
+            <column name="instructor_id"/>
+            <column name="lesson_date"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

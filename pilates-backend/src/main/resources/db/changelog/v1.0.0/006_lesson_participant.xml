@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- Derse eklenen öğrenciler (katılımcılar) -->
+    <changeSet id="1.0.0-006-lesson-participant" author="berker">
+        <createTable tableName="lesson_participant">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="lesson_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_participant_lesson"
+                             referencedTableName="lesson" referencedColumnNames="id"/>
+            </column>
+            <column name="student_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_participant_student"
+                             referencedTableName="student" referencedColumnNames="id"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP(6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP(6)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="lesson_participant" columnNames="lesson_id, student_id"
+                             constraintName="uk_participant_lesson_student"/>
+        <createIndex tableName="lesson_participant" indexName="ix_participant_student">
+            <column name="student_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

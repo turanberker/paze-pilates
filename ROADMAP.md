@@ -17,10 +17,12 @@ _Şu an aktif iş yok._
 
 ## ⬜ Planlananlar
 
-- ⬜ **Ders planlama**
-  - Ders oluşturma: oda + hoca + tarih-saat, kapasite, ders tipi
-  - Çakışma kontrolü (oda + hoca + zaman) servis katmanında
-  - Haftalık/günlük takvim görünümü
+- 🔄 **Ders planlama**
+  - ✅ Ders açma: hoca + oda + gün + saat aralığı, haftalık takvimden çift tıklayarak
+  - ✅ Çakışma kontrolü (oda ve hoca için saat aralığı) servis katmanında
+  - ✅ Haftalık takvim görünümü
+  - ✅ Takvimde sağ tık menüsü; derse öğrenci ekleme, katılımcıları gösterme ve çıkarma (kapasite = oda kapasitesi)
+  - ⬜ Ders düzenleme/iptal, paket bakiyesi düşümü, ders tipi, tekrarlayan dersler
 - ⬜ **Öğrenci yönetimi**
   - Öğrenci kaydı (ad, telefon, e-posta, notlar)
   - Rezervasyon ve iptal
