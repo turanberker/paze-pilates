@@ -14,6 +14,12 @@ public interface LessonService {
     /** İki tarih arasındaki (uçlar dahil) dersleri tarih ve saat sırasıyla döner. */
     List<LessonDto> findBetween(LocalDate from, LocalDate to);
 
+    /**
+     * Ana ekran için verilen günün dersleri, saat sırasıyla: yönetici tüm dersleri,
+     * hoca yalnızca kendi derslerini görür.
+     */
+    List<LessonDto> findMyLessonsOn(LocalDate date);
+
     /** Ders açılabilecek hocalar: yönetici için tüm aktif hocalar, hoca için yalnızca kendisi. */
     List<InstructorDto> findInstructorsForLessons();
 

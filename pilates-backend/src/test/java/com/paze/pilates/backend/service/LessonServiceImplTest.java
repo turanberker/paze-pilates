@@ -385,4 +385,24 @@ class LessonServiceImplTest {
         assertThat(asInstructor(7L).findInstructorsForLessons()).extracting("id").containsExactly(7L);
         assertThat(service.findInstructorsForLessons()).extracting("id").containsExactly(7L, 9L);
     }
+
+    @Test
+    @DisplayName("findMyLessonsOn: hoca yalnızca kendi derslerini, yönetici tüm dersleri görür")
+    void findMyLessonsOn_filtersByRole() {
+        Lesson own = lessonOf(7L, 100L);
+        Lesson foreign = lessonOf(9L, 101L);
+        when(lessonRepository.findBetween(DATE, DATE)).thenReturn(java.util.List.of(own, foreign));
+        when(participantRepository.countByLessonIds(any())).thenReturn(java.util.List.of());
+
+        assertThat(asInstructor(7L).findMyLessonsOn(DATE)).extracting(LessonDto::id).containsExactly(100L);
+        assertThat(service.findMyLessonsOn(DATE)).extracting(LessonDto::id).containsExactly(100L, 101L);
+    }
+
+    @Test
+    @DisplayName("findMyLessonsOn: hocanın o gün dersi yoksa boş liste döner")
+    void findMyLessonsOn_noOwnLessons_empty() {
+        when(lessonRepository.findBetween(DATE, DATE)).thenReturn(java.util.List.of(lessonOf(9L, 101L)));
+
+        assertThat(asInstructor(7L).findMyLessonsOn(DATE)).isEmpty();
+    }
 }

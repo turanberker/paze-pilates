@@ -77,7 +77,23 @@ public class LessonServiceImpl implements LessonService {
         if (from == null || to == null || to.isBefore(from)) {
             throw new BusinessException("lesson.error.range_invalid");
         }
-        List<Lesson> lessons = lessonRepository.findBetween(from, to);
+        return withCounts(lessonRepository.findBetween(from, to));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LessonDto> findMyLessonsOn(LocalDate date) {
+        CurrentUser user = guard.require(Permission.LESSON_VIEW_ALL);
+        if (date == null) {
+            throw new BusinessException("lesson.error.date_required");
+        }
+        boolean all = guard.has(Permission.LESSON_MANAGE);
+        return withCounts(lessonRepository.findBetween(date, date).stream()
+                .filter(l -> all || isOwnLesson(l, user))
+                .toList());
+    }
+
+    private List<LessonDto> withCounts(List<Lesson> lessons) {
         Map<Long, Integer> counts = new HashMap<>();
         if (!lessons.isEmpty()) {
             for (Object[] row : participantRepository.countByLessonIds(lessons.stream().map(Lesson::getId).toList())) {

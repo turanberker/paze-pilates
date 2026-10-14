@@ -6,11 +6,15 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
+import com.paze.pilates.desktop.ui.reservation.TodayLessonsPanel;
+import com.paze.pilates.dto.Permission;
+import com.paze.pilates.service.AuthService;
 import java.util.Locale;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Scope;
@@ -21,9 +25,14 @@ import org.springframework.stereotype.Component;
 public class DashboardPanel extends JPanel {
 
     private final MessageSource messages;
+    private final AuthService authService;
+    private final TodayLessonsPanel todayLessons;
 
-    public DashboardPanel(MessageSource messages) {
+    public DashboardPanel(MessageSource messages, AuthService authService,
+                          ObjectProvider<TodayLessonsPanel> todayLessonsProvider) {
         this.messages = messages;
+        this.authService = authService;
+        this.todayLessons = todayLessonsProvider.getObject();
         initComponents();
     }
 
@@ -32,7 +41,19 @@ public class DashboardPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(32, 32, 32, 32));
 
         add(buildHeader(), BorderLayout.NORTH);
-        add(buildStatCards(), BorderLayout.CENTER);
+        JPanel body = new JPanel(new BorderLayout(0, 28));
+        body.setOpaque(false);
+        // Özet kartları yalnızca yöneticiye; bugünkü dersler herkese (hoca kendi derslerini görür).
+        if (authService.getCurrentUser().map(u -> u.has(Permission.STUDIO_MANAGE)).orElse(false)) {
+            body.add(buildStatCards(), BorderLayout.NORTH);
+        }
+        body.add(todayLessons, BorderLayout.CENTER);
+        add(body, BorderLayout.CENTER);
+    }
+
+    /** Ana ekrana her gelişte güncel dersleri yükler. */
+    public void reload() {
+        todayLessons.reload();
     }
 
     private JPanel buildHeader() {
