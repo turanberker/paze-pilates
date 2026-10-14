@@ -45,19 +45,24 @@ public class SetupServiceImpl implements SetupService {
         if (userRepository.count() > 0) {
             throw new BusinessException("setup.error.already_done");
         }
-        String studioName = required(request.studioName(), "setup.error.studio_name_required",
-                "setup.error.studio_name_too_long");
+        String studioName = StudioRules.name(request.studioName());
         String fullName = required(request.adminFullName(), "setup.error.full_name_required",
                 "setup.error.full_name_too_long");
         String username = UsernamePolicy.normalize(request.username(), staticAdmin);
         passwordPolicy.validate(request.password(), request.passwordConfirm());
+        byte[] logo = StudioRules.logo(request.logo());
 
         studioRepository.findFirstByOrderByIdAsc().ifPresentOrElse(
                 studio -> {
                     studio.setName(studioName);
+                    studio.setLogo(logo);
                     studioRepository.save(studio);
                 },
-                () -> studioRepository.save(new Studio(studioName)));
+                () -> {
+                    Studio studio = new Studio(studioName);
+                    studio.setLogo(logo);
+                    studioRepository.save(studio);
+                });
 
         userRepository.save(new AppUser(username, passwordEncoder.encode(request.password()),
                 fullName, UserRole.ADMIN));

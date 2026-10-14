@@ -18,7 +18,8 @@ public enum NavTarget {
     CALENDAR("calendar", Permission.LESSON_VIEW_ALL),
     PACKAGE("package", Permission.PACKAGE_MANAGE),
     FINANCE("finance", Permission.PAYMENT_MANAGE),
-    REPORT("report", Permission.REPORT_VIEW);
+    REPORT("report", Permission.REPORT_VIEW),
+    STUDIO_SETTINGS("studio_settings", Permission.STUDIO_MANAGE);
 
     private final String key;
     private final List<Permission> anyOf;

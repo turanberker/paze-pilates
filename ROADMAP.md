@@ -21,6 +21,9 @@ _Son güncelleme: 2026-10-14_
   - ✅ Sabit (static) admin: `paze.security.static-admin.*`, bcrypt hash `application-local.yml` veya `PAZE_STATIC_ADMIN_PASSWORD_HASH`; hash üretmek için `--hash-password=<şifre>`
   - ✅ Şifre kuralları `paze.security.password.*` ile yml'den ayarlanır (uzunluk, büyük/küçük harf, rakam, özel karakter)
   - ✅ Hoca tüm dersleri ve katılımcıları görür; kendi adına ders açabilir, yalnızca kendi dersinde işlem yapabilir; öğrenci tanımlayabilir
+  - ✅ Kurulum ekranında isteğe bağlı header logosu (PNG/JPG, en fazla 512 KB); stüdyo kaydında saklanır, menü çubuğunun solunda ve pencere ikonunda gösterilir
+  - ✅ Ayarlar > Stüdyo Ayarları: stüdyo adı ve logo güncelleme/kaldırma (tek stüdyo kaydı; yenisi oluşturulmaz). Eski "Tanımlamalar > Stüdyo" menüsü "Ders Odaları" oldu
+  - ⬜ Ayarlar altına giderler ekranı (finans modülünden sonra)
 
 ## ⬜ Planlananlar
 

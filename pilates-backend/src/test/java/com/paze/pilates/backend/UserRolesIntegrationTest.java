@@ -58,7 +58,7 @@ class UserRolesIntegrationTest {
         assertThat(setupService.isSetupRequired()).isTrue();
         assertThat(setupService.isStaticAdminAvailable()).isTrue();
 
-        SetupRequestDto request = new SetupRequestDto("Paze Pilates", "Ayşe Yılmaz", "ayse", "sifre1234", "sifre1234");
+        SetupRequestDto request = new SetupRequestDto("Paze Pilates", "Ayşe Yılmaz", "ayse", "sifre1234", "sifre1234", null);
         setupService.completeSetup(request);
         assertThat(setupService.isSetupRequired()).isFalse();
         assertThatThrownBy(() -> setupService.completeSetup(request))
@@ -93,7 +93,7 @@ class UserRolesIntegrationTest {
 
     @Test
     void lastActiveAdminIsProtectedAndInstructorDeactivationDeactivatesUser() {
-        setupService.completeSetup(new SetupRequestDto("Paze", "Ayşe Yılmaz", "ayse", "sifre1234", "sifre1234"));
+        setupService.completeSetup(new SetupRequestDto("Paze", "Ayşe Yılmaz", "ayse", "sifre1234", "sifre1234", null));
         authService.authenticate("ayse", "sifre1234");
         Long adminId = userService.findAll().get(0).id();
         assertThatThrownBy(() -> userService.changeRole(adminId, UserRole.INSTRUCTOR,

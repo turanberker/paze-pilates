@@ -3,7 +3,9 @@ package com.paze.pilates.desktop.ui.main;
 import com.paze.pilates.dto.AppUserDto;
 import java.util.Locale;
 import java.util.function.Consumer;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
+import javax.swing.Icon;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -21,6 +23,7 @@ public class MainMenuBar extends JMenuBar {
     private Consumer<String> navCallback;
     private Runnable exitCallback;
     private Runnable changePasswordCallback;
+    private final JLabel logoLabel = new JLabel();
 
     public MainMenuBar(MessageSource messages) {
         this.messages = messages;
@@ -29,6 +32,11 @@ public class MainMenuBar extends JMenuBar {
     /** Menüyü kullanıcının görebildiği hedeflerle kurar; boş kalan menü eklenmez. */
     public void build(AppUserDto user) {
         removeAll();
+
+        // Stüdyo logosu en solda; yüklenmemişse gizli kalır ve menü eskisi gibi görünür.
+        logoLabel.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 10));
+        logoLabel.setVisible(logoLabel.getIcon() != null);
+        add(logoLabel);
 
         JMenu fileMenu = new JMenu(text("menu.file"));
         addNav(fileMenu, user, "menu.file.dashboard", NavTarget.DASHBOARD);
@@ -75,6 +83,10 @@ public class MainMenuBar extends JMenuBar {
         addNav(reportMenu, user, "menu.report.overview", NavTarget.REPORT);
         addIfNotEmpty(reportMenu);
 
+        JMenu settingsMenu = new JMenu(text("menu.settings"));
+        addNav(settingsMenu, user, "menu.settings.studio", NavTarget.STUDIO_SETTINGS);
+        addIfNotEmpty(settingsMenu);
+
         add(Box.createHorizontalGlue());
         add(new JLabel(messages.getMessage("menu.user_info",
                 new Object[] {user.fullName(), text("role." + user.role().name())}, Locale.getDefault())));
@@ -100,6 +112,14 @@ public class MainMenuBar extends JMenuBar {
         if (menu.getItemCount() > 0) {
             add(menu);
         }
+    }
+
+    /** Header'da gösterilecek stüdyo logosunu ayarlar; null verilirse logo gizlenir. */
+    public void setLogo(Icon logo) {
+        logoLabel.setIcon(logo);
+        logoLabel.setVisible(logo != null);
+        revalidate();
+        repaint();
     }
 
     public void setNavCallback(Consumer<String> callback) {

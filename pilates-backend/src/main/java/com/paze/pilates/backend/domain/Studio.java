@@ -2,6 +2,7 @@ package com.paze.pilates.backend.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -23,6 +24,11 @@ public class Studio extends BaseEntity {
 
     @Column(length = 30)
     private String phone;
+
+    /** Header logosu (PNG/JPEG); null ise varsayılan görünüm kullanılır. */
+    @Lob
+    @Column(name = "logo")
+    private byte[] logo;
 
     public Studio(String name) {
         this.name = name;

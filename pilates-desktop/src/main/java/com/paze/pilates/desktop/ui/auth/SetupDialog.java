@@ -1,5 +1,6 @@
 package com.paze.pilates.desktop.ui.auth;
 
+import com.paze.pilates.desktop.ui.shared.LogoPicker;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.SetupRequestDto;
 import com.paze.pilates.service.AuthService;
@@ -49,6 +50,7 @@ public class SetupDialog extends JDialog {
     private JPasswordField confirmField;
     private JLabel errorLabel;
     private JButton saveBtn;
+    private LogoPicker logoPicker;
 
     private Result result = Result.CANCELLED;
 
@@ -78,20 +80,22 @@ public class SetupDialog extends JDialog {
         c.insets = new Insets(0, 0, 16, 0);
         form.add(info, c);
 
+        errorLabel = new JLabel(" ");
+        errorLabel.setForeground(new Color(220, 38, 38));
         studioNameField = new JTextField(24);
         fullNameField = new JTextField(24);
         usernameField = new JTextField(24);
         passwordField = new JPasswordField(24);
         confirmField = new JPasswordField(24);
         addRow(form, c, 1, "setup.label.studio_name", studioNameField);
-        addRow(form, c, 2, "setup.label.full_name", fullNameField);
-        addRow(form, c, 3, "setup.label.username", usernameField);
-        addRow(form, c, 4, "setup.label.password", passwordField);
-        addRow(form, c, 5, "setup.label.password_confirm", confirmField);
+        logoPicker = new LogoPicker(messages, errorLabel::setText);
+        addRow(form, c, 2, "setup.label.logo", logoPicker);
+        addRow(form, c, 3, "setup.label.full_name", fullNameField);
+        addRow(form, c, 4, "setup.label.username", usernameField);
+        addRow(form, c, 5, "setup.label.password", passwordField);
+        addRow(form, c, 6, "setup.label.password_confirm", confirmField);
 
-        errorLabel = new JLabel(" ");
-        errorLabel.setForeground(new Color(220, 38, 38));
-        c.gridy = 12;
+        c.gridy = 14;
         c.insets = new Insets(0, 0, 0, 0);
         form.add(errorLabel, c);
         add(form, BorderLayout.CENTER);
@@ -130,7 +134,7 @@ public class SetupDialog extends JDialog {
     private void onSave() {
         SetupRequestDto request = new SetupRequestDto(
                 studioNameField.getText(), fullNameField.getText(), usernameField.getText(),
-                new String(passwordField.getPassword()), new String(confirmField.getPassword()));
+                new String(passwordField.getPassword()), new String(confirmField.getPassword()), logoPicker.getLogo());
         saveBtn.setEnabled(false);
         errorLabel.setText(" ");
         new SwingWorker<Boolean, Void>() {
