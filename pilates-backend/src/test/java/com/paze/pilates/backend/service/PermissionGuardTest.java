@@ -33,12 +33,13 @@ class PermissionGuardTest {
     }
 
     @Test
-    void instructorHasOnlyOwnLessonView() {
+    void instructorHasOwnLessonViewAndStudentManage() {
         PermissionGuard guard = TestSecurity.guardFor(TestSecurity.instructor(2L, 7L));
 
         guard.require(Permission.LESSON_VIEW_OWN);
+        guard.require(Permission.STUDENT_MANAGE);
         for (Permission permission : Permission.values()) {
-            if (permission != Permission.LESSON_VIEW_OWN) {
+            if (permission != Permission.LESSON_VIEW_OWN && permission != Permission.STUDENT_MANAGE) {
                 assertThat(guard.has(permission)).as(permission.name()).isFalse();
                 assertThatThrownBy(() -> guard.require(permission)).hasMessage("auth.error.forbidden");
             }

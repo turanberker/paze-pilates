@@ -89,12 +89,12 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void authenticate_instructorGetsOnlyOwnLessonPermission() {
+    void authenticate_instructorGetsLessonViewAndStudentPermissions() {
         when(userRepository.findByUsername("hoca")).thenReturn(Optional.of(user("hoca", "sifre1234", UserRole.INSTRUCTOR, true)));
 
         assertThat(service.authenticate("hoca", "sifre1234")).isTrue();
         assertThat(service.getCurrentUser().orElseThrow().permissions())
-                .containsExactly(Permission.LESSON_VIEW_OWN);
+                .containsExactlyInAnyOrder(Permission.LESSON_VIEW_OWN, Permission.STUDENT_MANAGE);
     }
 
     @Test

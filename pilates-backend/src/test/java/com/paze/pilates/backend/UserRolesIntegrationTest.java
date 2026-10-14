@@ -81,7 +81,7 @@ class UserRolesIntegrationTest {
 
         // Hoca yalnızca kendi derslerini görür; diğer servisler kapalı.
         assertThat(lessonService.findBetween(LocalDate.now(), LocalDate.now())).isEmpty();
-        assertThatThrownBy(() -> studentService.findAll()).hasMessage("auth.error.forbidden");
+        assertThat(studentService.findAll()).isEmpty();
         assertThatThrownBy(() -> userService.findAll()).hasMessage("auth.error.forbidden");
         assertThatThrownBy(() -> instructorService.getInstructors()).hasMessage("auth.error.forbidden");
 
