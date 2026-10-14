@@ -30,6 +30,15 @@ public class SessionPackageServiceImpl implements SessionPackageService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<SessionPackageDto> findActive() {
+        return repository.findByActiveTrueOrderByNameAsc()
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public SessionPackageDto save(SessionPackageDto dto) {
         validate(dto);
