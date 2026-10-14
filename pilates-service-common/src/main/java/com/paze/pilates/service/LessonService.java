@@ -31,4 +31,11 @@ public interface LessonService {
      * @throws com.paze.pilates.dto.BusinessException doğrulama veya kural hatasında
      */
     LessonParticipantDto addParticipant(Long lessonId, Long studentId);
+
+    /**
+     * Öğrenciyi dersten çıkarır. Saati geçmiş dersten çıkarma yapılamaz.
+     *
+     * @throws com.paze.pilates.dto.BusinessException katılım yoksa veya ders bitmişse
+     */
+    void removeParticipant(Long participantId);
 }

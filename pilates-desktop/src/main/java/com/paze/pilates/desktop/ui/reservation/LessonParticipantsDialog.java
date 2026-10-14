@@ -1,5 +1,6 @@
 package com.paze.pilates.desktop.ui.reservation;
 
+import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.LessonDto;
 import com.paze.pilates.dto.LessonParticipantDto;
 import com.paze.pilates.service.LessonService;
@@ -16,7 +17,9 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.ListSelectionModel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingWorker;
@@ -37,6 +40,9 @@ public class LessonParticipantsDialog extends JDialog {
     private final MessageSource messages;
 
     private ParticipantTableModel tableModel;
+    private JTable table;
+    private JButton removeBtn;
+    private boolean changed;
     private JLabel statusLabel;
 
     public LessonParticipantsDialog(LessonService lessonService, MessageSource messages) {
@@ -44,7 +50,8 @@ public class LessonParticipantsDialog extends JDialog {
         this.messages = messages;
     }
 
-    public void showDialog(Frame owner, LessonDto lesson) {
+    /** Formu açar; katılımcı çıkarıldıysa true döner. */
+    public boolean showDialog(Frame owner, LessonDto lesson) {
         setTitle(text("lesson.participants.title"));
         setModal(true);
         setLayout(new BorderLayout(0, 8));
@@ -57,19 +64,25 @@ public class LessonParticipantsDialog extends JDialog {
         add(header, BorderLayout.NORTH);
 
         tableModel = new ParticipantTableModel();
-        JTable table = new JTable(tableModel);
+        table = new JTable(tableModel);
         table.setRowHeight(26);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getSelectionModel().addListSelectionListener(e -> removeBtn.setEnabled(table.getSelectedRow() >= 0));
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 20));
         add(scroll, BorderLayout.CENTER);
 
         statusLabel = new JLabel(" ");
+        removeBtn = new JButton(text("lesson.participants.button.remove"));
+        removeBtn.setEnabled(false);
+        removeBtn.addActionListener(e -> onRemove(lesson));
         JButton closeBtn = new JButton(text("lesson.participants.button.close"));
         closeBtn.addActionListener(e -> dispose());
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setBorder(BorderFactory.createEmptyBorder(0, 20, 12, 20));
         bottom.add(statusLabel, BorderLayout.WEST);
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        buttons.add(removeBtn);
         buttons.add(closeBtn);
         bottom.add(buttons, BorderLayout.EAST);
         add(bottom, BorderLayout.SOUTH);
@@ -79,6 +92,42 @@ public class LessonParticipantsDialog extends JDialog {
         setLocationRelativeTo(owner);
         load(lesson);
         setVisible(true);
+        return changed;
+    }
+
+    private void onRemove(LessonDto lesson) {
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            return;
+        }
+        LessonParticipantDto participant = tableModel.getRow(row);
+        int answer = JOptionPane.showConfirmDialog(this,
+                messages.getMessage("lesson.participants.remove.confirm",
+                        new Object[] {participant.studentName()}, Locale.getDefault()),
+                text("lesson.participants.remove.title"), JOptionPane.YES_NO_OPTION);
+        if (answer != JOptionPane.YES_OPTION) {
+            return;
+        }
+        removeBtn.setEnabled(false);
+        new SwingWorker<Void, Void>() {
+            @Override protected Void doInBackground() {
+                lessonService.removeParticipant(participant.id());
+                return null;
+            }
+            @Override protected void done() {
+                try {
+                    get();
+                    changed = true;
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException ex) {
+                    statusLabel.setText(ex.getCause() instanceof BusinessException be
+                            ? text(be.getMessage()) : text("error.unexpected"));
+                    return;
+                }
+                load(lesson);
+            }
+        }.execute();
     }
 
     private void load(LessonDto lesson) {
@@ -110,6 +159,10 @@ public class LessonParticipantsDialog extends JDialog {
     private final class ParticipantTableModel extends AbstractTableModel {
 
         private List<LessonParticipantDto> rows = new ArrayList<>();
+
+        LessonParticipantDto getRow(int row) {
+            return rows.get(row);
+        }
 
         void setRows(List<LessonParticipantDto> rows) {
             this.rows = new ArrayList<>(rows);

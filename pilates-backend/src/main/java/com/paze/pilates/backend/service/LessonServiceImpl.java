@@ -139,6 +139,18 @@ public class LessonServiceImpl implements LessonService {
         return toParticipantDto(participantRepository.save(new LessonParticipant(lesson, student)));
     }
 
+    @Override
+    @Transactional
+    public void removeParticipant(Long participantId) {
+        LessonParticipant participant = participantRepository.findById(participantId == null ? -1L : participantId)
+                .orElseThrow(() -> new BusinessException("lesson.error.participant_not_found"));
+        Lesson lesson = participant.getLesson();
+        if (LocalDateTime.of(lesson.getLessonDate(), lesson.getEndTime()).isBefore(LocalDateTime.now())) {
+            throw new BusinessException("lesson.error.already_finished_remove");
+        }
+        participantRepository.delete(participant);
+    }
+
     private static LessonParticipantDto toParticipantDto(LessonParticipant p) {
         Student s = p.getStudent();
         return new LessonParticipantDto(p.getId(), p.getLesson().getId(), s.getId(),

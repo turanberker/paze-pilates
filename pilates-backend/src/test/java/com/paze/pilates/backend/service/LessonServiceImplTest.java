@@ -241,4 +241,36 @@ class LessonServiceImplTest {
 
         assertThat(result.studentName()).isEqualTo("Ali Kaya");
     }
+
+    @Test
+    @DisplayName("removeParticipant: gelecek dersten öğrenci çıkarılır")
+    void removeParticipant_ok() {
+        LessonParticipant p = new LessonParticipant(futureLesson(), new Student("Ali", "Kaya"));
+        when(participantRepository.findById(9L)).thenReturn(Optional.of(p));
+
+        service.removeParticipant(9L);
+
+        verify(participantRepository).delete(p);
+    }
+
+    @Test
+    @DisplayName("removeParticipant: bitmiş dersten çıkarma yapılamaz")
+    void removeParticipant_finishedLesson() {
+        Lesson past = new Lesson(instructor, room, LocalDate.now().minusDays(1), START, END);
+        when(participantRepository.findById(9L))
+                .thenReturn(Optional.of(new LessonParticipant(past, new Student("Ali", "Kaya"))));
+
+        assertThatThrownBy(() -> service.removeParticipant(9L))
+                .hasMessage("lesson.error.already_finished_remove");
+        verify(participantRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("removeParticipant: katılım kaydı yoksa hata verir")
+    void removeParticipant_notFound() {
+        when(participantRepository.findById(9L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.removeParticipant(9L))
+                .hasMessage("lesson.error.participant_not_found");
+    }
 }

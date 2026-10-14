@@ -175,8 +175,11 @@ public class CalendarPanel extends JPanel {
                             TIME_FMT.format(lesson.startTime()) + "-" + TIME_FMT.format(lesson.endTime())},
                     Locale.getDefault()));
             JMenuItem show = new JMenuItem(text("calendar.menu.show_participants"));
-            show.addActionListener(a -> participantsDialogProvider.getObject()
-                    .showDialog(parentFrame(), lesson));
+            show.addActionListener(a -> {
+                if (participantsDialogProvider.getObject().showDialog(parentFrame(), lesson)) {
+                    loadWeek();
+                }
+            });
             JMenuItem add = new JMenuItem(text("calendar.menu.add_student"));
             add.addActionListener(a -> onAddStudent(lesson));
             sub.add(show);
