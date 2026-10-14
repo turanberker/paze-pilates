@@ -3,6 +3,7 @@ package com.paze.pilates.desktop.ui.reservation;
 import com.paze.pilates.desktop.ui.shared.NotificationBar;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.LessonDto;
+import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.AppUserDto;
 import com.paze.pilates.service.AuthService;
 import com.paze.pilates.service.LessonService;
@@ -29,6 +30,7 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -54,6 +56,7 @@ public class CalendarPanel extends JPanel {
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final Color PAST_BG = new Color(229, 231, 235);
     private static final Color LESSON_BG = new Color(191, 219, 254);
+    private static final Color COMPLETED_BG = new Color(187, 247, 208);
 
     private final LessonService lessonService;
     private final AuthService authService;
@@ -61,6 +64,7 @@ public class CalendarPanel extends JPanel {
     private final ObjectProvider<LessonFormDialog> lessonDialogProvider;
     private final ObjectProvider<LessonParticipantsDialog> participantsDialogProvider;
     private final ObjectProvider<LessonStudentAddDialog> studentAddDialogProvider;
+    private final ObjectProvider<LessonCompleteDialog> completeDialogProvider;
     private final MessageSource messages;
 
     private LocalDate weekStart = LocalDate.now().with(DayOfWeek.MONDAY);
@@ -75,6 +79,7 @@ public class CalendarPanel extends JPanel {
             ObjectProvider<LessonFormDialog> lessonDialogProvider,
             ObjectProvider<LessonParticipantsDialog> participantsDialogProvider,
             ObjectProvider<LessonStudentAddDialog> studentAddDialogProvider,
+            ObjectProvider<LessonCompleteDialog> completeDialogProvider,
             MessageSource messages) {
         this.lessonService = lessonService;
         this.authService = authService;
@@ -82,6 +87,7 @@ public class CalendarPanel extends JPanel {
         this.lessonDialogProvider = lessonDialogProvider;
         this.participantsDialogProvider = participantsDialogProvider;
         this.studentAddDialogProvider = studentAddDialogProvider;
+        this.completeDialogProvider = completeDialogProvider;
         this.messages = messages;
         initComponents();
         loadWeek();
@@ -196,10 +202,18 @@ public class CalendarPanel extends JPanel {
                 }
             });
             sub.add(show);
-            if (canManageLesson(lesson)) {
+            if (canManageLesson(lesson) && !lesson.completed()) {
                 JMenuItem add = new JMenuItem(text("calendar.menu.add_student"));
                 add.addActionListener(a -> onAddStudent(lesson));
                 sub.add(add);
+                JMenuItem complete = new JMenuItem(text("calendar.menu.complete_lesson"));
+                complete.addActionListener(a -> onCompleteLesson(lesson));
+                sub.add(complete);
+            }
+            if (lesson.completed() && canUndoCompletion()) {
+                JMenuItem undo = new JMenuItem(text("calendar.menu.undo_completion"));
+                undo.addActionListener(a -> onUndoCompletion(lesson));
+                sub.add(undo);
             }
             menu.add(sub);
         }
@@ -221,6 +235,42 @@ public class CalendarPanel extends JPanel {
 
     private boolean canManageLesson(LessonDto lesson) {
         return authService.getCurrentUser().map(u -> u.canManageLessonOf(lesson.instructorId())).orElse(false);
+    }
+
+    private boolean canUndoCompletion() {
+        return authService.getCurrentUser().map(u -> u.has(Permission.LESSON_MANAGE)).orElse(false);
+    }
+
+    private void onCompleteLesson(LessonDto lesson) {
+        if (completeDialogProvider.getObject().showDialog(parentFrame(), lesson) != null) {
+            notificationBar.showSuccess(text("calendar.lesson.completed"));
+            loadWeek();
+        }
+    }
+
+    private void onUndoCompletion(LessonDto lesson) {
+        int answer = JOptionPane.showConfirmDialog(this, text("calendar.undo_completion.confirm"),
+                text("calendar.menu.undo_completion"), JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (answer != JOptionPane.YES_OPTION) {
+            return;
+        }
+        new SwingWorker<LessonDto, Void>() {
+            @Override protected LessonDto doInBackground() {
+                return lessonService.undoCompletion(lesson.id());
+            }
+            @Override protected void done() {
+                try {
+                    get();
+                    notificationBar.showSuccess(text("calendar.lesson.completion_undone"));
+                    loadWeek();
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException ex) {
+                    notificationBar.showError(ex.getCause() instanceof BusinessException be
+                            ? text(be.getMessage()) : text("error.unexpected"));
+                }
+            }
+        }.execute();
     }
 
     private void onAddStudent(LessonDto lesson) {
@@ -301,7 +351,7 @@ public class CalendarPanel extends JPanel {
                 if (l.date().equals(date) && l.startTime().isBefore(slotEnd) && l.endTime().isAfter(slot)) {
                     boolean startsHere = !l.startTime().isBefore(slot);
                     labels.add(startsHere || row == 0
-                            ? messages.getMessage("calendar.lesson.cell_count",
+                            ? messages.getMessage(l.completed() ? "calendar.lesson.cell_completed" : "calendar.lesson.cell_count",
                                     new Object[] {l.instructorName(), l.roomName(), l.participantCount(), l.capacity()}, Locale.getDefault())
                             : "");
                 }
@@ -333,7 +383,8 @@ public class CalendarPanel extends JPanel {
                 setForeground(t.getForeground());
                 setBackground(t.getTableHeader().getBackground());
             } else if (value != null) {
-                setBackground(LESSON_BG);
+                List<LessonDto> here = tableModel.lessonsAt(row, col);
+                setBackground(!here.isEmpty() && here.stream().allMatch(LessonDto::completed) ? COMPLETED_BG : LESSON_BG);
                 setForeground(Color.BLACK);
             } else if (isPast(row, col)) {
                 setBackground(PAST_BG);

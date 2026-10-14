@@ -15,6 +15,9 @@ import com.paze.pilates.backend.domain.LessonParticipant;
 import com.paze.pilates.backend.domain.Room;
 import com.paze.pilates.backend.domain.Student;
 import com.paze.pilates.backend.repository.LessonParticipantRepository;
+import com.paze.pilates.backend.repository.SessionDebtRepository;
+import com.paze.pilates.backend.repository.StudentLessonHistoryRepository;
+import com.paze.pilates.backend.repository.StudentPackageRepository;
 import com.paze.pilates.backend.repository.StudentRepository;
 import com.paze.pilates.backend.repository.InstructorRepository;
 import com.paze.pilates.backend.repository.LessonRepository;
@@ -49,6 +52,12 @@ class LessonServiceImplTest {
     private LessonParticipantRepository participantRepository;
     @Mock
     private StudentRepository studentRepository;
+    @Mock
+    private StudentPackageRepository studentPackageRepository;
+    @Mock
+    private StudentLessonHistoryRepository historyRepository;
+    @Mock
+    private SessionDebtRepository debtRepository;
 
     private LessonServiceImpl service;
     private Instructor instructor;
@@ -57,7 +66,8 @@ class LessonServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new LessonServiceImpl(lessonRepository, instructorRepository, roomRepository,
-                participantRepository, studentRepository, TestSecurity.adminGuard());
+                participantRepository, studentRepository, studentPackageRepository, historyRepository, debtRepository,
+                TestSecurity.adminGuard());
         instructor = new Instructor("Ayşe", "Yılmaz");
         room = new Room("Reformer Salonu", 6);
     }
@@ -287,8 +297,8 @@ class LessonServiceImplTest {
         when(lessonRepository.findBetween(DATE, DATE)).thenReturn(java.util.List.of(own, foreign));
         when(participantRepository.countByLessonIds(java.util.List.of(100L, 101L))).thenReturn(java.util.List.of());
         LessonServiceImpl asInstructor = new LessonServiceImpl(lessonRepository, instructorRepository,
-                roomRepository, participantRepository, studentRepository,
-                TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)));
+                roomRepository, participantRepository, studentRepository, studentPackageRepository, historyRepository,
+                debtRepository, TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)));
 
         assertThat(asInstructor.findBetween(DATE, DATE)).extracting(LessonDto::id).containsExactly(100L, 101L);
     }
@@ -302,7 +312,7 @@ class LessonServiceImplTest {
 
     private LessonServiceImpl asInstructor(long instructorId) {
         return new LessonServiceImpl(lessonRepository, instructorRepository, roomRepository,
-                participantRepository, studentRepository,
+                participantRepository, studentRepository, studentPackageRepository, historyRepository, debtRepository,
                 TestSecurity.guardFor(TestSecurity.instructor(2L, instructorId)));
     }
 

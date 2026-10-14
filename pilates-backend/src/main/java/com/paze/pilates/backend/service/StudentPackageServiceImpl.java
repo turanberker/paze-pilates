@@ -1,8 +1,10 @@
 package com.paze.pilates.backend.service;
 
+import com.paze.pilates.backend.domain.SessionDebt;
 import com.paze.pilates.backend.domain.SessionPackage;
 import com.paze.pilates.backend.domain.Student;
 import com.paze.pilates.backend.domain.StudentPackage;
+import com.paze.pilates.backend.repository.SessionDebtRepository;
 import com.paze.pilates.backend.repository.SessionPackageRepository;
 import com.paze.pilates.backend.repository.StudentPackageRepository;
 import com.paze.pilates.backend.repository.StudentRepository;
@@ -25,16 +27,19 @@ public class StudentPackageServiceImpl implements StudentPackageService {
     private final StudentPackageRepository repository;
     private final StudentRepository studentRepository;
     private final SessionPackageRepository packageRepository;
+    private final SessionDebtRepository debtRepository;
 
     public StudentPackageServiceImpl(
             StudentPackageRepository repository,
             StudentRepository studentRepository,
             SessionPackageRepository packageRepository,
+            SessionDebtRepository debtRepository,
             PermissionGuard guard) {
         this.guard = guard;
         this.repository = repository;
         this.studentRepository = studentRepository;
         this.packageRepository = packageRepository;
+        this.debtRepository = debtRepository;
     }
 
     @Override
@@ -77,7 +82,20 @@ public class StudentPackageServiceImpl implements StudentPackageService {
             sp.setPaid(true);
             sp.setPaymentDate(paymentDate);
         }
-        return toDto(repository.save(sp));
+        sp = repository.save(sp);
+        settleDebts(sp);
+        return toDto(sp);
+    }
+
+    /** Öğrencinin borçlu seanslarını en eski dersten başlayarak yeni paketten düşer; düşülen borç satırı silinir. */
+    private void settleDebts(StudentPackage sp) {
+        for (SessionDebt debt : debtRepository.findByStudentIdOldestFirst(sp.getStudent().getId())) {
+            if (!sp.hasRemaining()) {
+                return;
+            }
+            debt.getHistory().chargeTo(sp);
+            debtRepository.delete(debt);
+        }
     }
 
     @Override
@@ -102,6 +120,9 @@ public class StudentPackageServiceImpl implements StudentPackageService {
         StudentPackage sp = findOrThrow(studentPackageId);
         if (sp.isPaid()) {
             throw new BusinessException("student_package.error.cancel_paid");
+        }
+        if (sp.getUsedSessions() > 0) {
+            throw new BusinessException("student_package.error.cancel_used");
         }
         repository.delete(sp);
     }

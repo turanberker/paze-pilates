@@ -217,7 +217,10 @@ public class StudentPackageListPanel extends JPanel {
         StudentPackageDto result = assignDialogProvider.getObject().showDialog(parentFrame());
         if (result != null) {
             reload();
-            notificationBar.showSuccess(text("student_package.assign.success"));
+            notificationBar.showSuccess(result.usedSessions() > 0
+                    ? messages.getMessage("student_package.assign.success_with_debt",
+                            new Object[] {result.usedSessions()}, Locale.getDefault())
+                    : text("student_package.assign.success"));
         }
     }
 

@@ -9,6 +9,16 @@ import org.springframework.data.repository.query.Param;
 public interface StudentPackageRepository extends JpaRepository<StudentPackage, Long> {
 
     /**
+     * Seans düşülebilecek paketler sırasıyla: önce ödemesi alınmış, sonra alınmamış; her grupta en eski atama önce.
+     */
+    @Query("""
+            select sp from StudentPackage sp
+            where sp.student.id = :studentId and sp.usedSessions < sp.totalSessions
+            order by sp.paid desc, sp.assignedDate, sp.id
+            """)
+    List<StudentPackage> findUsableForStudent(@Param("studentId") Long studentId);
+
+    /**
      * Öğrenci adına ve kalan seans durumuna göre atamaları yeniden eskiye döner.
      *
      * @param term          ad/soyad içinde aranacak metin ("" → hepsi)

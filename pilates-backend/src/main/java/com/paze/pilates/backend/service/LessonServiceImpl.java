@@ -4,14 +4,21 @@ import com.paze.pilates.backend.domain.Instructor;
 import com.paze.pilates.backend.domain.Lesson;
 import com.paze.pilates.backend.domain.LessonParticipant;
 import com.paze.pilates.backend.domain.Room;
+import com.paze.pilates.backend.domain.SessionDebt;
 import com.paze.pilates.backend.domain.Student;
+import com.paze.pilates.backend.domain.StudentLessonHistory;
+import com.paze.pilates.backend.domain.StudentPackage;
 import com.paze.pilates.backend.repository.InstructorRepository;
 import com.paze.pilates.backend.repository.LessonParticipantRepository;
 import com.paze.pilates.backend.repository.LessonRepository;
 import com.paze.pilates.backend.repository.RoomRepository;
+import com.paze.pilates.backend.repository.SessionDebtRepository;
+import com.paze.pilates.backend.repository.StudentLessonHistoryRepository;
+import com.paze.pilates.backend.repository.StudentPackageRepository;
 import com.paze.pilates.backend.repository.StudentRepository;
 import com.paze.pilates.backend.security.CurrentUser;
 import com.paze.pilates.backend.security.PermissionGuard;
+import com.paze.pilates.dto.AttendanceDto;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.InstructorDto;
 import com.paze.pilates.dto.LessonDto;
@@ -25,6 +32,8 @@ import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +45,9 @@ public class LessonServiceImpl implements LessonService {
     private final RoomRepository roomRepository;
     private final LessonParticipantRepository participantRepository;
     private final StudentRepository studentRepository;
+    private final StudentPackageRepository studentPackageRepository;
+    private final StudentLessonHistoryRepository historyRepository;
+    private final SessionDebtRepository debtRepository;
     private final PermissionGuard guard;
 
     public LessonServiceImpl(LessonRepository lessonRepository,
@@ -43,12 +55,18 @@ public class LessonServiceImpl implements LessonService {
                              RoomRepository roomRepository,
                              LessonParticipantRepository participantRepository,
                              StudentRepository studentRepository,
+                             StudentPackageRepository studentPackageRepository,
+                             StudentLessonHistoryRepository historyRepository,
+                             SessionDebtRepository debtRepository,
                              PermissionGuard guard) {
         this.lessonRepository = lessonRepository;
         this.instructorRepository = instructorRepository;
         this.roomRepository = roomRepository;
         this.participantRepository = participantRepository;
         this.studentRepository = studentRepository;
+        this.studentPackageRepository = studentPackageRepository;
+        this.historyRepository = historyRepository;
+        this.debtRepository = debtRepository;
         this.guard = guard;
     }
 
@@ -138,8 +156,10 @@ public class LessonServiceImpl implements LessonService {
     @Transactional(readOnly = true)
     public List<LessonParticipantDto> getParticipants(Long lessonId) {
         guard.require(Permission.LESSON_VIEW_ALL);
+        Map<Long, StudentLessonHistory> history = historyRepository.findByLessonId(lessonId).stream()
+                .collect(Collectors.toMap(h -> h.getParticipant().getId(), Function.identity()));
         return participantRepository.findByLessonId(lessonId).stream()
-                .map(LessonServiceImpl::toParticipantDto)
+                .map(p -> toParticipantDto(p, history.get(p.getId())))
                 .toList();
     }
 
@@ -156,7 +176,10 @@ public class LessonServiceImpl implements LessonService {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new BusinessException("lesson.error.not_found"));
         requireCanManage(lesson, user);
-        if (LocalDateTime.of(lesson.getLessonDate(), lesson.getEndTime()).isBefore(LocalDateTime.now())) {
+        if (lesson.isCompleted()) {
+            throw new BusinessException("lesson.error.completed_locked");
+        }
+        if (lesson.getEndDateTime().isBefore(LocalDateTime.now())) {
             throw new BusinessException("lesson.error.already_finished");
         }
         Student student = studentRepository.findById(studentId)
@@ -173,7 +196,7 @@ public class LessonServiceImpl implements LessonService {
                 lesson.getStartTime(), lesson.getEndTime())) {
             throw new BusinessException("lesson.error.student_conflict");
         }
-        return toParticipantDto(participantRepository.save(new LessonParticipant(lesson, student)));
+        return toParticipantDto(participantRepository.save(new LessonParticipant(lesson, student)), null);
     }
 
     @Override
@@ -184,10 +207,77 @@ public class LessonServiceImpl implements LessonService {
                 .orElseThrow(() -> new BusinessException("lesson.error.participant_not_found"));
         Lesson lesson = participant.getLesson();
         requireCanManage(lesson, user);
-        if (LocalDateTime.of(lesson.getLessonDate(), lesson.getEndTime()).isBefore(LocalDateTime.now())) {
+        if (lesson.isCompleted()) {
+            throw new BusinessException("lesson.error.completed_locked");
+        }
+        if (lesson.getEndDateTime().isBefore(LocalDateTime.now())) {
             throw new BusinessException("lesson.error.already_finished_remove");
         }
         participantRepository.delete(participant);
+    }
+
+    @Override
+    @Transactional
+    public LessonDto completeLesson(Long lessonId, List<AttendanceDto> attendance) {
+        CurrentUser user = guard.requireAny(Permission.LESSON_MANAGE, Permission.LESSON_MANAGE_OWN);
+        Lesson lesson = lessonRepository.findById(lessonId == null ? -1L : lessonId)
+                .orElseThrow(() -> new BusinessException("lesson.error.not_found"));
+        requireCanManage(lesson, user);
+        if (lesson.isCompleted()) {
+            throw new BusinessException("lesson.error.already_completed");
+        }
+        if (lesson.getStartDateTime().isAfter(LocalDateTime.now())) {
+            throw new BusinessException("lesson.error.not_started");
+        }
+
+        List<LessonParticipant> participants = participantRepository.findByLessonId(lessonId);
+        Map<Long, AttendanceDto> byParticipant = new HashMap<>();
+        for (AttendanceDto a : attendance == null ? List.<AttendanceDto>of() : attendance) {
+            if (a == null || a.participantId() == null || byParticipant.put(a.participantId(), a) != null) {
+                throw new BusinessException("lesson.error.attendance_invalid");
+            }
+        }
+        if (byParticipant.size() != participants.size()
+                || !participants.stream().allMatch(p -> byParticipant.containsKey(p.getId()))) {
+            throw new BusinessException("lesson.error.attendance_incomplete");
+        }
+
+        for (LessonParticipant p : participants) {
+            AttendanceDto a = byParticipant.get(p.getId());
+            StudentLessonHistory history = new StudentLessonHistory(p, a.attended(), a.charged());
+            if (a.charged()) {
+                List<StudentPackage> usable = studentPackageRepository.findUsableForStudent(p.getStudent().getId());
+                if (!usable.isEmpty()) {
+                    history.chargeTo(usable.get(0));
+                }
+            }
+            history = historyRepository.save(history);
+            if (a.charged() && history.getStudentPackage() == null) {
+                debtRepository.save(new SessionDebt(history));
+            }
+        }
+        lesson.markCompleted(LocalDateTime.now(), user.username());
+        return toDto(lessonRepository.save(lesson), participants.size());
+    }
+
+    @Override
+    @Transactional
+    public LessonDto undoCompletion(Long lessonId) {
+        guard.require(Permission.LESSON_MANAGE);
+        Lesson lesson = lessonRepository.findById(lessonId == null ? -1L : lessonId)
+                .orElseThrow(() -> new BusinessException("lesson.error.not_found"));
+        if (!lesson.isCompleted()) {
+            throw new BusinessException("lesson.error.not_completed");
+        }
+        for (StudentLessonHistory h : historyRepository.findByLessonId(lessonId)) {
+            if (h.getStudentPackage() != null) {
+                h.getStudentPackage().refundSession();
+            }
+            debtRepository.findByHistoryId(h.getId()).ifPresent(debtRepository::delete);
+            historyRepository.delete(h);
+        }
+        lesson.clearCompletion();
+        return toDto(lessonRepository.save(lesson), (int) participantRepository.countByLessonId(lessonId));
     }
 
     /** Yönetici her derse, hoca yalnızca kendi dersine işlem yapabilir. */
@@ -201,10 +291,14 @@ public class LessonServiceImpl implements LessonService {
         return user.instructorId() != null && user.instructorId().equals(lesson.getInstructor().getId());
     }
 
-    private static LessonParticipantDto toParticipantDto(LessonParticipant p) {
+    private static LessonParticipantDto toParticipantDto(LessonParticipant p, StudentLessonHistory h) {
         Student s = p.getStudent();
+        StudentPackage sp = h == null ? null : h.getStudentPackage();
         return new LessonParticipantDto(p.getId(), p.getLesson().getId(), s.getId(),
-                s.getFirstName() + " " + s.getLastName(), s.getPhone());
+                s.getFirstName() + " " + s.getLastName(), s.getPhone(),
+                h == null ? null : h.isAttended(),
+                h != null && h.isCharged(),
+                sp == null ? null : sp.getSessionPackage().getName());
     }
 
     private static LessonDto toDto(Lesson l, int participantCount) {
@@ -212,6 +306,6 @@ public class LessonServiceImpl implements LessonService {
         Room r = l.getRoom();
         return new LessonDto(l.getId(), i.getId(), i.getFirstName() + " " + i.getLastName(),
                 r.getId(), r.getName(), r.getCapacity(), participantCount,
-                l.getLessonDate(), l.getStartTime(), l.getEndTime());
+                l.getLessonDate(), l.getStartTime(), l.getEndTime(), l.isCompleted());
     }
 }

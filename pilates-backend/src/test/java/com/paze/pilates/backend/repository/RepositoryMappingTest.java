@@ -8,8 +8,10 @@ import com.paze.pilates.backend.domain.Instructor;
 import com.paze.pilates.backend.domain.Lesson;
 import com.paze.pilates.backend.domain.LessonParticipant;
 import com.paze.pilates.backend.domain.Room;
+import com.paze.pilates.backend.domain.SessionDebt;
 import com.paze.pilates.backend.domain.SessionPackage;
 import com.paze.pilates.backend.domain.Student;
+import com.paze.pilates.backend.domain.StudentLessonHistory;
 import com.paze.pilates.backend.domain.StudentPackage;
 import com.paze.pilates.dto.UserRole;
 import jakarta.persistence.EntityManager;
@@ -54,6 +56,12 @@ class RepositoryMappingTest {
 
     @Autowired
     private LessonParticipantRepository participantRepository;
+
+    @Autowired
+    private StudentLessonHistoryRepository historyRepository;
+
+    @Autowired
+    private SessionDebtRepository debtRepository;
 
     @Test
     void savesUserWithTimestampsAndRejectsDuplicateUsername() {
@@ -133,7 +141,9 @@ class RepositoryMappingTest {
 
         studentPackageRepository.save(new StudentPackage(ali, pkg, LocalDate.of(2026, 2, 1)));
         StudentPackage finished = new StudentPackage(zeynep, pkg, LocalDate.of(2026, 3, 1));
-        finished.setUsedSessions(4);
+        for (int i = 0; i < 4; i++) {
+            finished.useSession();
+        }
         studentPackageRepository.saveAndFlush(finished);
         entityManager.clear();
 
@@ -195,6 +205,57 @@ class RepositoryMappingTest {
         assertThatThrownBy(() -> participantRepository.saveAndFlush(
                 new LessonParticipant(lessonRepository.findById(lesson.getId()).orElseThrow(),
                         studentRepository.findById(ali.getId()).orElseThrow())))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void ordersUsablePackagesPaidFirstThenOldest() {
+        Student ali = studentRepository.save(new Student("Ali", "Kaya"));
+        SessionPackage pkg = packageRepository.save(
+                new SessionPackage("2'li", new BigDecimal("400"), 2, LocalDate.of(2026, 1, 1)));
+        StudentPackage oldUnpaid = studentPackageRepository.save(new StudentPackage(ali, pkg, LocalDate.of(2026, 1, 5)));
+        StudentPackage newPaid = new StudentPackage(ali, pkg, LocalDate.of(2026, 2, 5));
+        newPaid.setPaid(true);
+        newPaid.setPaymentDate(LocalDate.of(2026, 2, 5));
+        studentPackageRepository.save(newPaid);
+        StudentPackage oldPaidFinished = new StudentPackage(ali, pkg, LocalDate.of(2026, 1, 1));
+        oldPaidFinished.setPaid(true);
+        oldPaidFinished.setPaymentDate(LocalDate.of(2026, 1, 1));
+        oldPaidFinished.useSession();
+        oldPaidFinished.useSession();
+        studentPackageRepository.saveAndFlush(oldPaidFinished);
+        entityManager.clear();
+
+        assertThat(studentPackageRepository.findUsableForStudent(ali.getId()))
+                .extracting(StudentPackage::getId)
+                .containsExactly(newPaid.getId(), oldUnpaid.getId());
+    }
+
+    @Test
+    void storesLessonHistoryAndDebtAndRejectsDuplicateHistory() {
+        Room room = roomRepository.save(new Room("Reformer", 6));
+        Instructor ayse = instructorRepository.save(new Instructor("Ayşe", "Yılmaz"));
+        Student ali = studentRepository.save(new Student("Ali", "Kaya"));
+        Lesson early = lessonRepository.save(new Lesson(ayse, room, LocalDate.of(2026, 10, 1),
+                LocalTime.of(10, 0), LocalTime.of(11, 0)));
+        Lesson late = lessonRepository.save(new Lesson(ayse, room, LocalDate.of(2026, 10, 2),
+                LocalTime.of(10, 0), LocalTime.of(11, 0)));
+        LessonParticipant lateP = participantRepository.save(new LessonParticipant(late, ali));
+        LessonParticipant earlyP = participantRepository.save(new LessonParticipant(early, ali));
+        SessionDebt lateDebt = debtRepository.save(new SessionDebt(historyRepository.save(
+                new StudentLessonHistory(lateP, true, true))));
+        SessionDebt earlyDebt = debtRepository.saveAndFlush(new SessionDebt(historyRepository.save(
+                new StudentLessonHistory(earlyP, false, true))));
+        entityManager.clear();
+
+        assertThat(debtRepository.findByStudentIdOldestFirst(ali.getId()))
+                .extracting(SessionDebt::getId).containsExactly(earlyDebt.getId(), lateDebt.getId());
+        assertThat(debtRepository.countByStudentIds(java.util.List.of(ali.getId())))
+                .first().satisfies(r -> assertThat(r[1]).isEqualTo(2L));
+        assertThat(historyRepository.findByLessonId(late.getId())).hasSize(1)
+                .first().satisfies(h -> assertThat(h.getStudentPackage()).isNull());
+        assertThatThrownBy(() -> historyRepository.saveAndFlush(new StudentLessonHistory(
+                participantRepository.findById(lateP.getId()).orElseThrow(), true, true)))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 }

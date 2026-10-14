@@ -1,13 +1,16 @@
 package com.paze.pilates.backend.service;
 
 import com.paze.pilates.backend.domain.Student;
+import com.paze.pilates.backend.repository.SessionDebtRepository;
 import com.paze.pilates.backend.repository.StudentRepository;
 import com.paze.pilates.backend.security.PermissionGuard;
 import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.StudentDto;
 import com.paze.pilates.service.StudentService;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,20 +20,20 @@ public class StudentServiceImpl implements StudentService {
     private final PermissionGuard guard;
 
     private final StudentRepository studentRepository;
+    private final SessionDebtRepository debtRepository;
 
-    public StudentServiceImpl(StudentRepository studentRepository, PermissionGuard guard) {
+    public StudentServiceImpl(StudentRepository studentRepository, SessionDebtRepository debtRepository,
+                              PermissionGuard guard) {
         this.guard = guard;
         this.studentRepository = studentRepository;
+        this.debtRepository = debtRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<StudentDto> findAll() {
         guard.require(Permission.STUDENT_MANAGE);
-        return studentRepository.findByActiveTrueOrderByLastNameAscFirstNameAsc()
-                .stream()
-                .map(this::toDto)
-                .toList();
+        return withDebts(studentRepository.findByActiveTrueOrderByLastNameAscFirstNameAsc());
     }
 
     @Override
@@ -40,10 +43,7 @@ public class StudentServiceImpl implements StudentService {
         if (term == null || term.isBlank()) {
             return findAll();
         }
-        return studentRepository.searchActive(term.trim())
-                .stream()
-                .map(this::toDto)
-                .toList();
+        return withDebts(studentRepository.searchActive(term.trim()));
     }
 
     @Override
@@ -60,7 +60,7 @@ public class StudentServiceImpl implements StudentService {
             }
             Student s = new Student(dto.firstName().trim(), dto.lastName().trim());
             applyFields(s, dto);
-            return toDto(studentRepository.save(s));
+            return withDebts(List.of(studentRepository.save(s))).get(0);
         } else {
             // Güncelleme: kendi kaydı dışında telefon benzersizlik kontrolü
             Student s = studentRepository.findById(dto.id())
@@ -71,7 +71,7 @@ public class StudentServiceImpl implements StudentService {
                 throw new BusinessException("student.error.phone_duplicate");
             }
             applyFields(s, dto);
-            return toDto(studentRepository.save(s));
+            return withDebts(List.of(studentRepository.save(s))).get(0);
         }
     }
 
@@ -123,7 +123,17 @@ public class StudentServiceImpl implements StudentService {
         s.setNotes(dto.notes() == null || dto.notes().isBlank() ? null : dto.notes().trim());
     }
 
-    private StudentDto toDto(Student s) {
+    private List<StudentDto> withDebts(List<Student> students) {
+        Map<Long, Integer> debts = new HashMap<>();
+        if (!students.isEmpty()) {
+            for (Object[] row : debtRepository.countByStudentIds(students.stream().map(Student::getId).toList())) {
+                debts.put((Long) row[0], ((Long) row[1]).intValue());
+            }
+        }
+        return students.stream().map(s -> toDto(s, debts.getOrDefault(s.getId(), 0))).toList();
+    }
+
+    private StudentDto toDto(Student s, int sessionDebt) {
         return new StudentDto(
                 s.getId(),
                 s.getFirstName(),
@@ -132,7 +142,8 @@ public class StudentServiceImpl implements StudentService {
                 s.getEmail(),
                 s.getBirthDate(),
                 s.getNotes(),
-                s.isActive()
+                s.isActive(),
+                sessionDebt
         );
     }
 }

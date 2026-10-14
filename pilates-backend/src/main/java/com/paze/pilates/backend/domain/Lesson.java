@@ -7,6 +7,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 /** Takvimde açılmış tek seferlik ders: hoca + oda + gün + saat aralığı. */
@@ -31,6 +32,12 @@ public class Lesson extends BaseEntity {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Column(name = "completed_by", length = 100)
+    private String completedBy;
+
     protected Lesson() {
     }
 
@@ -51,4 +58,24 @@ public class Lesson extends BaseEntity {
     public LocalTime getStartTime() { return startTime; }
 
     public LocalTime getEndTime() { return endTime; }
+
+    public LocalDateTime getStartDateTime() { return LocalDateTime.of(lessonDate, startTime); }
+
+    public LocalDateTime getEndDateTime() { return LocalDateTime.of(lessonDate, endTime); }
+
+    public boolean isCompleted() { return completedAt != null; }
+
+    public LocalDateTime getCompletedAt() { return completedAt; }
+
+    public String getCompletedBy() { return completedBy; }
+
+    public void markCompleted(LocalDateTime at, String by) {
+        this.completedAt = at;
+        this.completedBy = by;
+    }
+
+    public void clearCompletion() {
+        this.completedAt = null;
+        this.completedBy = null;
+    }
 }
