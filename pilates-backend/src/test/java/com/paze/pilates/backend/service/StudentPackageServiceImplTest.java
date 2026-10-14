@@ -181,17 +181,14 @@ class StudentPackageServiceImplTest {
     }
 
     @Test
-    @DisplayName("cancel: ödemesi alınmamış atama iptal edilir, kayıt silinmez")
-    void cancel_unpaid_marksCancelled() {
+    @DisplayName("cancel: ödemesi alınmamış atama tamamen silinir")
+    void cancel_unpaid_deletes() {
         StudentPackage sp = new StudentPackage(student, pkg, TODAY);
         when(repository.findById(5L)).thenReturn(Optional.of(sp));
-        when(repository.save(any(StudentPackage.class))).thenAnswer(i -> i.getArgument(0));
 
-        StudentPackageDto result = service.cancel(5L);
+        service.cancel(5L);
 
-        assertThat(result.cancelled()).isTrue();
-        assertThat(result.cancelledDate()).isEqualTo(TODAY);
-        verify(repository, never()).delete(any());
+        verify(repository).delete(sp);
     }
 
     @Test
@@ -204,29 +201,15 @@ class StudentPackageServiceImplTest {
 
         assertThatThrownBy(() -> service.cancel(5L))
                 .hasMessage("student_package.error.cancel_paid");
-        verify(repository, never()).save(any());
+        verify(repository, never()).delete(any());
     }
 
     @Test
-    @DisplayName("cancel: zaten iptal edilmiş atama tekrar iptal edilemez")
-    void cancel_alreadyCancelled_throws() {
-        StudentPackage sp = new StudentPackage(student, pkg, TODAY);
-        sp.setCancelled(true);
-        when(repository.findById(5L)).thenReturn(Optional.of(sp));
+    @DisplayName("cancel: kayıt bulunamazsa hata")
+    void cancel_notFound_throws() {
+        when(repository.findById(5L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.cancel(5L))
-                .hasMessage("student_package.error.already_cancelled");
-    }
-
-    @Test
-    @DisplayName("completePayment: iptal edilmiş atamanın ödemesi alınamaz")
-    void completePayment_cancelled_throws() {
-        StudentPackage sp = new StudentPackage(student, pkg, TODAY);
-        sp.setCancelled(true);
-        when(repository.findById(5L)).thenReturn(Optional.of(sp));
-
-        assertThatThrownBy(() -> service.completePayment(5L, TODAY))
-                .hasMessage("student_package.error.cancelled");
-        verify(repository, never()).save(any());
+                .hasMessage("student_package.error.not_found");
     }
 }

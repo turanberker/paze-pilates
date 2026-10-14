@@ -76,9 +76,6 @@ public class StudentPackageServiceImpl implements StudentPackageService {
     @Transactional
     public StudentPackageDto completePayment(Long studentPackageId, LocalDate paymentDate) {
         StudentPackage sp = findOrThrow(studentPackageId);
-        if (sp.isCancelled()) {
-            throw new BusinessException("student_package.error.cancelled");
-        }
         if (sp.isPaid()) {
             throw new BusinessException("student_package.error.already_paid");
         }
@@ -91,18 +88,12 @@ public class StudentPackageServiceImpl implements StudentPackageService {
 
     @Override
     @Transactional
-    public StudentPackageDto cancel(Long studentPackageId) {
+    public void cancel(Long studentPackageId) {
         StudentPackage sp = findOrThrow(studentPackageId);
-        if (sp.isCancelled()) {
-            throw new BusinessException("student_package.error.already_cancelled");
-        }
         if (sp.isPaid()) {
             throw new BusinessException("student_package.error.cancel_paid");
         }
-
-        sp.setCancelled(true);
-        sp.setCancelledDate(LocalDate.now());
-        return toDto(repository.save(sp));
+        repository.delete(sp);
     }
 
     private StudentPackage findOrThrow(Long id) {
@@ -133,8 +124,6 @@ public class StudentPackageServiceImpl implements StudentPackageService {
                 sp.getRemainingSessions(),
                 sp.isPaid(),
                 sp.getPaymentDate(),
-                sp.getAssignedDate(),
-                sp.isCancelled(),
-                sp.getCancelledDate());
+                sp.getAssignedDate());
     }
 }

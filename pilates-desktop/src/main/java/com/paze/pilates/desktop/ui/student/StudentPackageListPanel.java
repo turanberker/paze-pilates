@@ -45,7 +45,6 @@ public class StudentPackageListPanel extends JPanel {
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final Color FINISHED_BG = new Color(254, 202, 202);
     private static final Color LOW_BG = new Color(254, 240, 138);
-    private static final Color CANCELLED_FG = new Color(148, 163, 184);
     private static final int LOW_THRESHOLD = 2;
 
     private final StudentPackageService studentPackageService;
@@ -171,12 +170,12 @@ public class StudentPackageListPanel extends JPanel {
         return bar;
     }
 
-    /** Ödenmiş veya iptal edilmiş satırda ödeme alma ve iptal kapalıdır. */
+    /** Ödemesi alınmış satırda ödeme alma ve iptal kapalıdır. */
     private void updateButtons() {
         int row = table.getSelectedRow();
-        boolean open = row >= 0 && !tableModel.getRow(row).paid() && !tableModel.getRow(row).cancelled();
-        paymentBtn.setEnabled(open);
-        cancelBtn.setEnabled(open);
+        boolean unpaid = row >= 0 && !tableModel.getRow(row).paid();
+        paymentBtn.setEnabled(unpaid);
+        cancelBtn.setEnabled(unpaid);
     }
 
     private void onCancel() {
@@ -192,9 +191,10 @@ public class StudentPackageListPanel extends JPanel {
 
         Long id = tableModel.getRow(row).id();
         cancelBtn.setEnabled(false);
-        new SwingWorker<StudentPackageDto, Void>() {
-            @Override protected StudentPackageDto doInBackground() {
-                return studentPackageService.cancel(id);
+        new SwingWorker<Void, Void>() {
+            @Override protected Void doInBackground() {
+                studentPackageService.cancel(id);
+                return null;
             }
             @Override protected void done() {
                 try {
@@ -258,7 +258,7 @@ public class StudentPackageListPanel extends JPanel {
         return messages.getMessage(key, null, key, Locale.getDefault());
     }
 
-    // ── Renklendirme: kalan 0 → kırmızı, 1-2 → sarı, iptal → gri yazı ─────────
+    // ── Renklendirme: kalan 0 → kırmızı, 1-2 → sarı ───────────────────────────
 
     private class RemainingRowRenderer extends DefaultTableCellRenderer {
         @Override
@@ -266,12 +266,8 @@ public class StudentPackageListPanel extends JPanel {
                                                        boolean hasFocus, int row, int column) {
             super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, column);
             if (!isSelected) {
-                StudentPackageDto sp = tableModel.getRow(tbl.convertRowIndexToModel(row));
-                int remaining = sp.remainingSessions();
-                setForeground(sp.cancelled() ? CANCELLED_FG : tbl.getForeground());
-                if (sp.cancelled()) {
-                    setBackground(tbl.getBackground());
-                } else if (remaining == 0) {
+                int remaining = tableModel.getRow(tbl.convertRowIndexToModel(row)).remainingSessions();
+                if (remaining == 0) {
                     setBackground(FINISHED_BG);
                 } else if (remaining <= LOW_THRESHOLD) {
                     setBackground(LOW_BG);
@@ -310,8 +306,7 @@ public class StudentPackageListPanel extends JPanel {
                 case 1 -> sp.packageName();
                 case 2 -> sp.totalSessions();
                 case 3 -> sp.remainingSessions();
-                case 4 -> text(sp.cancelled() ? "student_package.status.cancelled"
-                        : sp.paid() ? "student_package.status.paid" : "student_package.status.unpaid");
+                case 4 -> text(sp.paid() ? "student_package.status.paid" : "student_package.status.unpaid");
                 case 5 -> sp.paymentDate() == null ? "" : sp.paymentDate().format(DATE_FMT);
                 case 6 -> sp.assignedDate().format(DATE_FMT);
                 default -> null;

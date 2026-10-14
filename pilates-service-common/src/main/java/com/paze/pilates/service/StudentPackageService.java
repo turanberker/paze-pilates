@@ -32,9 +32,10 @@ public interface StudentPackageService {
     StudentPackageDto completePayment(Long studentPackageId, LocalDate paymentDate);
 
     /**
-     * Ödemesi alınmamış atamayı iptal eder. Kayıt silinmez, iptal tarihiyle işaretlenir.
+     * Ödemesi alınmamış atamayı iptal eder; kayıt tamamen silinir.
+     * Ödemesi alınmış atamanın iptali (kalan bakiye ve iade hesabı) sonraki aşamadadır.
      *
-     * @throws com.paze.pilates.dto.BusinessException kayıt yoksa, ödemesi alınmışsa veya zaten iptalse
+     * @throws com.paze.pilates.dto.BusinessException kayıt yoksa veya ödemesi alınmışsa
      */
-    StudentPackageDto cancel(Long studentPackageId);
+    void cancel(Long studentPackageId);
 }

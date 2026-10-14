@@ -126,15 +126,12 @@ class RepositoryMappingTest {
         studentPackageRepository.save(new StudentPackage(ali, pkg, LocalDate.of(2026, 2, 1)));
         StudentPackage finished = new StudentPackage(zeynep, pkg, LocalDate.of(2026, 3, 1));
         finished.setUsedSessions(4);
-        studentPackageRepository.save(finished);
-        StudentPackage cancelled = new StudentPackage(ali, pkg, LocalDate.of(2026, 1, 15));
-        cancelled.setCancelled(true);
-        studentPackageRepository.saveAndFlush(cancelled);
+        studentPackageRepository.saveAndFlush(finished);
         entityManager.clear();
 
         assertThat(studentPackageRepository.search("", false, false))
                 .extracting(sp -> sp.getStudent().getFirstName())
-                .containsExactly("Zeynep", "Ali", "Ali");
+                .containsExactly("Zeynep", "Ali");
         assertThat(studentPackageRepository.search("", true, false))
                 .extracting(sp -> sp.getStudent().getFirstName()).containsExactly("Ali");
         assertThat(studentPackageRepository.search("", false, true))

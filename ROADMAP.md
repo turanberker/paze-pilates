@@ -28,6 +28,7 @@ _Şu an aktif iş yok._
   - Paket tanımı (ör. 8 seans, 12 seans)
   - Öğrenci paketi ve kalan seans bakiyesi
   - Paket satışı ve ödeme kaydı (nakit, kart)
+  - Ödemesi alınmış paketin iptali: kullanılan seansa göre kalan bakiye ve iade hesabı
 - ⬜ **Raporlar**
   - Günlük kasa özeti, aylık gelir raporu, borçlu öğrenci listesi
   - Doluluk raporu, hoca ders/seans raporu

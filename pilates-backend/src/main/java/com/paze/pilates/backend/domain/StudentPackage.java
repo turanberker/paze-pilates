@@ -39,12 +39,6 @@ public class StudentPackage extends BaseEntity {
     @Column(name = "assigned_date", nullable = false)
     private LocalDate assignedDate;
 
-    @Column(nullable = false)
-    private boolean cancelled;
-
-    @Column(name = "cancelled_date")
-    private LocalDate cancelledDate;
-
     protected StudentPackage() {
     }
 
@@ -73,10 +67,4 @@ public class StudentPackage extends BaseEntity {
     public void setPaymentDate(LocalDate paymentDate) { this.paymentDate = paymentDate; }
 
     public LocalDate getAssignedDate() { return assignedDate; }
-
-    public boolean isCancelled() { return cancelled; }
-    public void setCancelled(boolean cancelled) { this.cancelled = cancelled; }
-
-    public LocalDate getCancelledDate() { return cancelledDate; }
-    public void setCancelledDate(LocalDate cancelledDate) { this.cancelledDate = cancelledDate; }
 }
