@@ -13,7 +13,13 @@ _Son güncelleme: 2026-10-14_
 
 ## 🔄 Devam edenler
 
-_Şu an aktif iş yok._
+- 🔄 **Rol, yetki ve kullanıcı yönetimi** (`feature/user-roles-albng0`, kullanıcı testi bekleniyor)
+  - ✅ Sabit roller: Yönetici ve Hoca; yetkiler servis katmanında `PermissionGuard` ile kontrol edilir
+  - ✅ İlk açılışta Kurulum ekranı (stüdyo, ilk yönetici); kullanıcı varken kurulum reddedilir
+  - ✅ Tanımlamalar > Kullanıcılar: hoca için kullanıcı aç, geçici şifre, ilk girişte şifre değiştirme, şifre sıfırlama, rol değiştirme, pasife alma
+  - ✅ Son aktif yönetici korunur; hoca pasife alınınca kullanıcısı da pasife alınır
+  - ✅ Sabit (static) admin: `paze.security.static-admin.*`, bcrypt hash `application-local.yml` veya `PAZE_STATIC_ADMIN_PASSWORD_HASH`; hash üretmek için `--hash-password=<şifre>`
+  - ✅ Hoca yalnızca kendi derslerini ve katılımcılarını görür (salt okunur)
 
 ## ⬜ Planlananlar
 

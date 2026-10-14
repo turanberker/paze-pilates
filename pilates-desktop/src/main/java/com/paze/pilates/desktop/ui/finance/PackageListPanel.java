@@ -29,8 +29,10 @@ import javax.swing.SwingWorker;
 import javax.swing.table.AbstractTableModel;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.MessageSource;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+@Lazy
 @Component
 public class PackageListPanel extends JPanel {
 

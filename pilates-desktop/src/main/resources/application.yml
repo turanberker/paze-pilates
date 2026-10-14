@@ -2,6 +2,14 @@ paze:
   db:
     # H2 dosya yolu (uzantısız). Yedekleme için farklı bir dizine yönlendirilebilir.
     path: ./data/studio
+  security:
+    # Sabit (static) admin: veritabanında durmaz, her zaman giriş yapabilir.
+    # password-hash boşsa devre dışıdır. Düz şifre repoya yazılmaz; hash üretmek için:
+    #   java -jar paze-pilates.jar --hash-password=<şifre>   (hash'i yazdırıp çıkar)
+    # Hash'i application-local.yml (gitignore'da) veya PAZE_STATIC_ADMIN_PASSWORD_HASH ortam değişkeniyle ver.
+    static-admin:
+      username: sistem
+      password-hash: ${PAZE_STATIC_ADMIN_PASSWORD_HASH:}
 
 spring:
   application:

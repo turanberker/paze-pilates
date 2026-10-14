@@ -5,8 +5,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import org.springframework.context.MessageSource;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+@Lazy
 @Component
 public class ReportPanel extends JPanel {
 
