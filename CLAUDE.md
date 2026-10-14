@@ -164,3 +164,8 @@ Her görev sonunda:
 - **Dosyalar:** Eklenen ve değiştirilen dosyalar
 - **Doğrulama:** Çalıştırılan test ve build sonuçları
 - **Sonraki adım:** Önerilen tek sonraki iş
+
+## 11. Git kuralları
+- Değişiklikler tamamlanıp derleme başarılı olduktan sonra otomatik olarak commit ve push yap.
+- Commit mesajı: değişikliğin kısa özeti (Türkçe veya İngilizce).
+  Branch: mevcut aktif branch'e push yap, hiçbir zaman branch değiştirme.
