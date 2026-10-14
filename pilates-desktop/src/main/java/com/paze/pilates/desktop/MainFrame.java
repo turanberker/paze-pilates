@@ -9,6 +9,7 @@ import com.paze.pilates.desktop.ui.report.ReportPanel;
 import com.paze.pilates.desktop.ui.reservation.CalendarPanel;
 import com.paze.pilates.desktop.ui.shared.NotificationBar;
 import com.paze.pilates.desktop.ui.student.StudentListPanel;
+import com.paze.pilates.desktop.ui.student.StudentPackageListPanel;
 import com.paze.pilates.desktop.ui.studio.StudioPanel;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -38,6 +39,7 @@ public class MainFrame extends JFrame {
     private final StudioPanel studioPanel;
     private final InstructorListPanel instructorPanel;
     private final StudentListPanel studentPanel;
+    private final StudentPackageListPanel studentPackagePanel;
     private final CalendarPanel calendarPanel;
     private final PackageListPanel packagePanel;
     private final PaymentPanel paymentPanel;
@@ -55,6 +57,7 @@ public class MainFrame extends JFrame {
             StudioPanel studioPanel,
             InstructorListPanel instructorPanel,
             StudentListPanel studentPanel,
+            StudentPackageListPanel studentPackagePanel,
             CalendarPanel calendarPanel,
             PackageListPanel packagePanel,
             PaymentPanel paymentPanel,
@@ -68,6 +71,7 @@ public class MainFrame extends JFrame {
         this.studioPanel = studioPanel;
         this.instructorPanel = instructorPanel;
         this.studentPanel = studentPanel;
+        this.studentPackagePanel = studentPackagePanel;
         this.calendarPanel = calendarPanel;
         this.packagePanel = packagePanel;
         this.paymentPanel = paymentPanel;
@@ -87,6 +91,7 @@ public class MainFrame extends JFrame {
         contentCards.add(studioPanel,    "studio");
         contentCards.add(instructorPanel,"instructor");
         contentCards.add(studentPanel,   "student");
+        contentCards.add(studentPackagePanel, "student_package");
         contentCards.add(calendarPanel,  "calendar");
         contentCards.add(packagePanel,   "package");
         contentCards.add(paymentPanel,   "finance");
@@ -115,6 +120,9 @@ public class MainFrame extends JFrame {
     }
 
     public void showPanel(String name) {
+        if ("student_package".equals(name)) {
+            studentPackagePanel.reload();
+        }
         cardLayout.show(contentCards, name);
     }
 

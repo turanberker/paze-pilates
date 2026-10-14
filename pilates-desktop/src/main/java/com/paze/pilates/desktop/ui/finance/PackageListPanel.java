@@ -1,6 +1,7 @@
 package com.paze.pilates.desktop.ui.finance;
 
 import com.paze.pilates.desktop.ui.shared.NotificationBar;
+import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.SessionPackageDto;
 import com.paze.pilates.service.SessionPackageService;
 import java.awt.BorderLayout;
@@ -43,6 +44,7 @@ public class PackageListPanel extends JPanel {
     private PackageTableModel tableModel;
     private JTable table;
     private JButton editBtn;
+    private JButton toggleActiveBtn;
 
     public PackageListPanel(
             SessionPackageService packageService,
@@ -97,7 +99,7 @@ public class PackageListPanel extends JPanel {
         table.getColumnModel().getColumn(4).setPreferredWidth(80);  // Durum
 
         table.getSelectionModel().addListSelectionListener(
-                e -> { if (!e.getValueIsAdjusting()) editBtn.setEnabled(table.getSelectedRow() >= 0); });
+                e -> { if (!e.getValueIsAdjusting()) updateButtons(); });
         table.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) onEdit();
@@ -117,7 +119,49 @@ public class PackageListPanel extends JPanel {
         editBtn.setEnabled(false);
         editBtn.addActionListener(e -> onEdit());
         bar.add(editBtn);
+
+        toggleActiveBtn = new JButton(text("package.button.deactivate"));
+        toggleActiveBtn.setEnabled(false);
+        toggleActiveBtn.addActionListener(e -> onToggleActive());
+        bar.add(toggleActiveBtn);
         return bar;
+    }
+
+    private void updateButtons() {
+        int row = table.getSelectedRow();
+        editBtn.setEnabled(row >= 0);
+        toggleActiveBtn.setEnabled(row >= 0);
+        if (row >= 0) {
+            toggleActiveBtn.setText(text(tableModel.getPackage(row).active()
+                    ? "package.button.deactivate" : "package.button.activate"));
+        }
+    }
+
+    /** Aktiflik değişimi genel save yerine amaca özel servis metoduyla yapılır. */
+    private void onToggleActive() {
+        int row = table.getSelectedRow();
+        if (row < 0) return;
+        SessionPackageDto pkg = tableModel.getPackage(row);
+        toggleActiveBtn.setEnabled(false);
+        new SwingWorker<SessionPackageDto, Void>() {
+            @Override protected SessionPackageDto doInBackground() {
+                return pkg.active() ? packageService.deactivate(pkg.id()) : packageService.activate(pkg.id());
+            }
+            @Override protected void done() {
+                try {
+                    SessionPackageDto result = get();
+                    loadPackages();
+                    notificationBar.showSuccess(text(result.active()
+                            ? "package.activate.success" : "package.deactivate.success"));
+                } catch (ExecutionException ex) {
+                    notificationBar.showError(ex.getCause() instanceof BusinessException be
+                            ? text(be.getMessage()) : text("error.unexpected"));
+                    updateButtons();
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }.execute();
     }
 
     private void onAdd() {
@@ -147,6 +191,7 @@ public class PackageListPanel extends JPanel {
             @Override protected void done() {
                 try {
                     tableModel.setPackages(get());
+                    updateButtons();
                 } catch (InterruptedException | ExecutionException ex) {
                     notificationBar.showError(ex.getMessage());
                 }

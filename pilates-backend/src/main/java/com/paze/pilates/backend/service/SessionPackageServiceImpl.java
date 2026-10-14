@@ -30,6 +30,15 @@ public class SessionPackageServiceImpl implements SessionPackageService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<SessionPackageDto> findActive() {
+        return repository.findByActiveTrueOrderByNameAsc()
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public SessionPackageDto save(SessionPackageDto dto) {
         validate(dto);
@@ -39,15 +48,34 @@ public class SessionPackageServiceImpl implements SessionPackageService {
             p = new SessionPackage(dto.name().trim(), scale(dto.price()),
                     dto.sessionCount(), dto.startDate());
         } else {
-            p = repository.findById(dto.id())
-                    .orElseThrow(() -> new BusinessException("package.error.not_found"));
+            p = findOrThrow(dto.id());
             p.setName(dto.name().trim());
             p.setPrice(scale(dto.price()));
             p.setSessionCount(dto.sessionCount());
             p.setStartDate(dto.startDate());
         }
-        p.setActive(dto.active());
         return toDto(repository.save(p));
+    }
+
+    @Override
+    @Transactional
+    public SessionPackageDto activate(Long id) {
+        SessionPackage p = findOrThrow(id);
+        p.setActive(true);
+        return toDto(repository.save(p));
+    }
+
+    @Override
+    @Transactional
+    public SessionPackageDto deactivate(Long id) {
+        SessionPackage p = findOrThrow(id);
+        p.setActive(false);
+        return toDto(repository.save(p));
+    }
+
+    private SessionPackage findOrThrow(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new BusinessException("package.error.not_found"));
     }
 
     private void validate(SessionPackageDto dto) {

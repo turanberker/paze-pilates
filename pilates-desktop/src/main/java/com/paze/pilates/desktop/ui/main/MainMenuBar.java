@@ -38,6 +38,7 @@ public class MainMenuBar extends JMenuBar {
 
         JMenu studentMenu = new JMenu(text("menu.student"));
         studentMenu.add(navItem("menu.student.list", "student"));
+        studentMenu.add(navItem("menu.student.packages", "student_package"));
 
         JMenu planningMenu = new JMenu(text("menu.planning"));
         planningMenu.add(navItem("menu.planning.calendar", "calendar"));

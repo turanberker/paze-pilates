@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- Öğrenciye atanan paketler; her satır bir satın alma (tarihçe) -->
+    <changeSet id="1.0.0-004" author="berker">
+        <createTable tableName="student_package">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="student_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_student_package_student"
+                             referencedTableName="student" referencedColumnNames="id"/>
+            </column>
+            <column name="session_package_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_student_package_package"
+                             referencedTableName="session_package" referencedColumnNames="id"/>
+            </column>
+            <column name="total_sessions" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="used_sessions" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="paid" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payment_date" type="DATE"/>
+            <column name="assigned_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP(6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP(6)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="student_package" indexName="ix_student_package_student">
+            <column name="student_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
