@@ -13,6 +13,7 @@ import java.time.LocalDate;
  * @param birthDate doğum tarihi (isteğe bağlı)
  * @param notes     notlar / sağlık kısıtlamaları (isteğe bağlı, max 500)
  * @param active    aktif/pasif bayrağı
+ * @param sessionDebt paketi olmadığı için düşülemeyen seans sayısı (yalnızca okuma; kayıtta dikkate alınmaz)
  */
 public record StudentDto(
         Long id,
@@ -22,6 +23,13 @@ public record StudentDto(
         String email,
         LocalDate birthDate,
         String notes,
-        boolean active
+        boolean active,
+        int sessionDebt
 ) {
+
+    /** Form kaydı için: borç bilgisi servis tarafından hesaplanır. */
+    public StudentDto(Long id, String firstName, String lastName, String phone, String email,
+                      LocalDate birthDate, String notes, boolean active) {
+        this(id, firstName, lastName, phone, email, birthDate, notes, active, 0);
+    }
 }

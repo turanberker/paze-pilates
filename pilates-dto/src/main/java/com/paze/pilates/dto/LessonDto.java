@@ -16,6 +16,7 @@ import java.time.LocalTime;
  * @param date             ders günü
  * @param startTime        başlangıç saati
  * @param endTime          bitiş saati
+ * @param completed        ders tamamlandı mı (yoklama alındı, seanslar düşüldü)
  */
 public record LessonDto(
         Long id,
@@ -27,6 +28,7 @@ public record LessonDto(
         int participantCount,
         LocalDate date,
         LocalTime startTime,
-        LocalTime endTime
+        LocalTime endTime,
+        boolean completed
 ) {
 }

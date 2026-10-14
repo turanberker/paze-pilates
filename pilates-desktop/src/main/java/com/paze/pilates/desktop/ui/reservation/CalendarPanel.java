@@ -3,15 +3,12 @@ package com.paze.pilates.desktop.ui.reservation;
 import com.paze.pilates.desktop.ui.shared.NotificationBar;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.LessonDto;
-import com.paze.pilates.dto.AppUserDto;
-import com.paze.pilates.service.AuthService;
 import com.paze.pilates.service.LessonService;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Frame;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.DayOfWeek;
@@ -35,11 +32,9 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.MessageSource;
 
 /** Haftalık takvim; boş saate çift tıklayarak ders açılır. */
@@ -54,13 +49,11 @@ public class CalendarPanel extends JPanel {
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final Color PAST_BG = new Color(229, 231, 235);
     private static final Color LESSON_BG = new Color(191, 219, 254);
+    private static final Color COMPLETED_BG = new Color(187, 247, 208);
 
     private final LessonService lessonService;
-    private final AuthService authService;
     private final NotificationBar notificationBar;
-    private final ObjectProvider<LessonFormDialog> lessonDialogProvider;
-    private final ObjectProvider<LessonParticipantsDialog> participantsDialogProvider;
-    private final ObjectProvider<LessonStudentAddDialog> studentAddDialogProvider;
+    private final LessonActions lessonActions;
     private final MessageSource messages;
 
     private LocalDate weekStart = LocalDate.now().with(DayOfWeek.MONDAY);
@@ -70,18 +63,12 @@ public class CalendarPanel extends JPanel {
 
     public CalendarPanel(
             LessonService lessonService,
-            AuthService authService,
             NotificationBar notificationBar,
-            ObjectProvider<LessonFormDialog> lessonDialogProvider,
-            ObjectProvider<LessonParticipantsDialog> participantsDialogProvider,
-            ObjectProvider<LessonStudentAddDialog> studentAddDialogProvider,
+            LessonActions lessonActions,
             MessageSource messages) {
         this.lessonService = lessonService;
-        this.authService = authService;
         this.notificationBar = notificationBar;
-        this.lessonDialogProvider = lessonDialogProvider;
-        this.participantsDialogProvider = participantsDialogProvider;
-        this.studentAddDialogProvider = studentAddDialogProvider;
+        this.lessonActions = lessonActions;
         this.messages = messages;
         initComponents();
         loadWeek();
@@ -189,18 +176,7 @@ public class CalendarPanel extends JPanel {
                     new Object[] {lesson.instructorName(), lesson.roomName(),
                             TIME_FMT.format(lesson.startTime()) + "-" + TIME_FMT.format(lesson.endTime())},
                     Locale.getDefault()));
-            JMenuItem show = new JMenuItem(text("calendar.menu.show_participants"));
-            show.addActionListener(a -> {
-                if (participantsDialogProvider.getObject().showDialog(parentFrame(), lesson)) {
-                    loadWeek();
-                }
-            });
-            sub.add(show);
-            if (canManageLesson(lesson)) {
-                JMenuItem add = new JMenuItem(text("calendar.menu.add_student"));
-                add.addActionListener(a -> onAddStudent(lesson));
-                sub.add(add);
-            }
+            lessonActions.menuItems(this, lesson, this::loadWeek).forEach(sub::add);
             menu.add(sub);
         }
         if (menu.getComponentCount() > 0) {
@@ -208,9 +184,8 @@ public class CalendarPanel extends JPanel {
         }
     }
 
-    /** Yönetici her derse, hoca yalnızca kendi dersine işlem yapar; asıl kontrol serviste. */
     private boolean canOpenLessons() {
-        return authService.getCurrentUser().map(AppUserDto::canOpenLessons).orElse(false);
+        return lessonActions.canOpenLessons();
     }
 
     /** Dilimin başlangıcı geçmişteyse o hücreye ders açılamaz (asıl kontrol serviste). */
@@ -219,28 +194,11 @@ public class CalendarPanel extends JPanel {
                 .isBefore(LocalDateTime.now());
     }
 
-    private boolean canManageLesson(LessonDto lesson) {
-        return authService.getCurrentUser().map(u -> u.canManageLessonOf(lesson.instructorId())).orElse(false);
-    }
-
-    private void onAddStudent(LessonDto lesson) {
-        if (studentAddDialogProvider.getObject().showDialog(parentFrame(), lesson) != null) {
-            notificationBar.showSuccess(text("calendar.student.added"));
-            loadWeek();
-        }
-    }
-
-    private Frame parentFrame() {
-        return (Frame) SwingUtilities.getWindowAncestor(this);
-    }
-
     private void onOpenLesson(int row, int col) {
         LocalDate date = weekStart.plusDays(col - 1L);
         LocalTime start = WeekTableModel.slotStart(row);
-        LessonDto created = lessonDialogProvider.getObject()
-                .showDialog(parentFrame(), date, start);
+        LessonDto created = lessonActions.openLesson(this, date, start);
         if (created != null) {
-            notificationBar.showSuccess(text("calendar.lesson.created"));
             if (!created.date().isBefore(weekStart) && !created.date().isAfter(weekStart.plusDays(6))) {
                 loadWeek();
             } else {
@@ -301,7 +259,7 @@ public class CalendarPanel extends JPanel {
                 if (l.date().equals(date) && l.startTime().isBefore(slotEnd) && l.endTime().isAfter(slot)) {
                     boolean startsHere = !l.startTime().isBefore(slot);
                     labels.add(startsHere || row == 0
-                            ? messages.getMessage("calendar.lesson.cell_count",
+                            ? messages.getMessage(l.completed() ? "calendar.lesson.cell_completed" : "calendar.lesson.cell_count",
                                     new Object[] {l.instructorName(), l.roomName(), l.participantCount(), l.capacity()}, Locale.getDefault())
                             : "");
                 }
@@ -333,7 +291,8 @@ public class CalendarPanel extends JPanel {
                 setForeground(t.getForeground());
                 setBackground(t.getTableHeader().getBackground());
             } else if (value != null) {
-                setBackground(LESSON_BG);
+                List<LessonDto> here = tableModel.lessonsAt(row, col);
+                setBackground(!here.isEmpty() && here.stream().allMatch(LessonDto::completed) ? COMPLETED_BG : LESSON_BG);
                 setForeground(Color.BLACK);
             } else if (isPast(row, col)) {
                 setBackground(PAST_BG);

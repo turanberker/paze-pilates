@@ -2,6 +2,7 @@ package com.paze.pilates.backend.service;
 
 import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.Student;
+import com.paze.pilates.backend.repository.SessionDebtRepository;
 import com.paze.pilates.backend.repository.StudentRepository;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.StudentDto;
@@ -32,12 +33,14 @@ class StudentServiceImplTest {
 
     @Mock
     private StudentRepository repository;
+    @Mock
+    private SessionDebtRepository debtRepository;
 
     private StudentServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new StudentServiceImpl(repository, TestSecurity.adminGuard());
+        service = new StudentServiceImpl(repository, debtRepository, TestSecurity.adminGuard());
     }
 
     // ── findAll ──────────────────────────────────────────────────────────────

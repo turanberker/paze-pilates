@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- Dersin tamamlanma bilgisi; completed_at null → tamamlanmadı -->
+    <changeSet id="1.0.0-008-lesson-completed" author="berker">
+        <addColumn tableName="lesson">
+            <column name="completed_at" type="TIMESTAMP(6)"/>
+            <column name="completed_by" type="VARCHAR(100)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Öğrenci ders geçmişi: tamamlanan dersteki her katılımcı için bir satır -->
+    <changeSet id="1.0.0-008-student-lesson-history" author="berker">
+        <createTable tableName="student_lesson_history">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="lesson_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_history_lesson"
+                             referencedTableName="lesson" referencedColumnNames="id"/>
+            </column>
+            <column name="student_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_history_student"
+                             referencedTableName="student" referencedColumnNames="id"/>
+            </column>
+            <column name="lesson_participant_id" type="BIGINT">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_history_participant"
+                             foreignKeyName="fk_history_participant"
+                             referencedTableName="lesson_participant" referencedColumnNames="id"/>
+            </column>
+            <column name="attended" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="charged" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Seansın düşüldüğü paket ataması; borçta null -->
+            <column name="student_package_id" type="BIGINT">
+                <constraints nullable="true" foreignKeyName="fk_history_student_package"
+                             referencedTableName="student_package" referencedColumnNames="id"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP(6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP(6)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="student_lesson_history" indexName="ix_history_student">
+            <column name="student_id"/>
+        </createIndex>
+        <createIndex tableName="student_lesson_history" indexName="ix_history_lesson">
+            <column name="lesson_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Paketi olmayan öğrencinin seans borcu; paket atanınca düşülür ve satır silinir -->
+    <changeSet id="1.0.0-008-session-debt" author="berker">
+        <createTable tableName="session_debt">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="history_id" type="BIGINT">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_debt_history"
+                             foreignKeyName="fk_debt_history"
+                             referencedTableName="student_lesson_history" referencedColumnNames="id"/>
+            </column>
+            <column name="student_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_debt_student"
+                             referencedTableName="student" referencedColumnNames="id"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP(6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP(6)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="session_debt" indexName="ix_debt_student">
+            <column name="student_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

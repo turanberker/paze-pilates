@@ -29,6 +29,7 @@ import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingWorker;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.MessageSource;
@@ -40,6 +41,7 @@ import org.springframework.stereotype.Component;
 public class StudentListPanel extends JPanel {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final Color DEBT_BG = new Color(254, 202, 202);
 
     private final StudentService studentService;
     private final NotificationBar notificationBar;
@@ -119,6 +121,8 @@ public class StudentListPanel extends JPanel {
         table.getColumnModel().getColumn(2).setPreferredWidth(120); // Telefon
         table.getColumnModel().getColumn(3).setPreferredWidth(180); // E-posta
         table.getColumnModel().getColumn(4).setPreferredWidth(100); // Doğum
+        table.getColumnModel().getColumn(5).setPreferredWidth(90);  // Seans borcu
+        table.getColumnModel().getColumn(5).setCellRenderer(new DebtRenderer());
 
         table.getSelectionModel().addListSelectionListener(
                 e -> { if (!e.getValueIsAdjusting()) updateButtons(); });
@@ -214,6 +218,19 @@ public class StudentListPanel extends JPanel {
         return messages.getMessage(key, null, key, Locale.getDefault());
     }
 
+    /** Seans borcu olan öğrencinin borç hücresi kırmızı. */
+    private static class DebtRenderer extends DefaultTableCellRenderer {
+        @Override
+        public java.awt.Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected,
+                                                       boolean hasFocus, int row, int column) {
+            super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, column);
+            if (!isSelected) {
+                setBackground(value instanceof Integer ? DEBT_BG : tbl.getBackground());
+            }
+            return this;
+        }
+    }
+
     // ── Table model ───────────────────────────────────────────────────────────
 
     private class StudentTableModel extends AbstractTableModel {
@@ -223,7 +240,8 @@ public class StudentListPanel extends JPanel {
             text("student.col.lastname"),
             text("student.col.phone"),
             text("student.col.email"),
-            text("student.col.birthdate")
+            text("student.col.birthdate"),
+            text("student.col.session_debt")
         };
         private final List<StudentDto> rows = new ArrayList<>();
 
@@ -240,6 +258,7 @@ public class StudentListPanel extends JPanel {
                 case 2 -> s.phone() != null ? s.phone() : "";
                 case 3 -> s.email() != null ? s.email() : "";
                 case 4 -> s.birthDate() != null ? s.birthDate().format(DATE_FMT) : "";
+                case 5 -> s.sessionDebt() > 0 ? s.sessionDebt() : "";
                 default -> null;
             };
         }

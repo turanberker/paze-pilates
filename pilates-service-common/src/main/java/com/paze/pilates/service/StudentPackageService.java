@@ -17,6 +17,7 @@ public interface StudentPackageService {
 
     /**
      * Aktif öğrenciye aktif paket atar. Atama tarihi bugündür.
+     * Öğrencinin seans borcu varsa en eski dersten başlayarak yeni paketten düşülür ve borç satırları silinir.
      *
      * @param paid        ödeme alındı mı
      * @param paymentDate ödeme alındıysa tarihi (zorunlu, ileri tarih olamaz)
@@ -32,10 +33,10 @@ public interface StudentPackageService {
     StudentPackageDto completePayment(Long studentPackageId, LocalDate paymentDate);
 
     /**
-     * Ödemesi alınmamış atamayı iptal eder; kayıt tamamen silinir.
+     * Ödemesi alınmamış ve hiç seansı kullanılmamış atamayı iptal eder; kayıt tamamen silinir.
      * Ödemesi alınmış atamanın iptali (kalan bakiye ve iade hesabı) sonraki aşamadadır.
      *
-     * @throws com.paze.pilates.dto.BusinessException kayıt yoksa veya ödemesi alınmışsa
+     * @throws com.paze.pilates.dto.BusinessException kayıt yoksa, ödemesi alınmışsa veya seansı kullanılmışsa
      */
     void cancel(Long studentPackageId);
 }

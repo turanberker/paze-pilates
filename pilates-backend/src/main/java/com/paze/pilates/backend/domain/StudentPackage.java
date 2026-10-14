@@ -56,7 +56,24 @@ public class StudentPackage extends BaseEntity {
     public int getTotalSessions() { return totalSessions; }
 
     public int getUsedSessions() { return usedSessions; }
-    public void setUsedSessions(int usedSessions) { this.usedSessions = usedSessions; }
+
+    public boolean hasRemaining() { return usedSessions < totalSessions; }
+
+    /** Bir seans düşer; kalan yoksa hata (çağıran önce {@link #hasRemaining()} bakar). */
+    public void useSession() {
+        if (!hasRemaining()) {
+            throw new IllegalStateException("No remaining session in student package " + getId());
+        }
+        usedSessions++;
+    }
+
+    /** Tamamlama geri alınınca düşülen seansı iade eder. */
+    public void refundSession() {
+        if (usedSessions == 0) {
+            throw new IllegalStateException("No used session to refund in student package " + getId());
+        }
+        usedSessions--;
+    }
 
     public int getRemainingSessions() { return Math.max(0, totalSessions - usedSessions); }
 

@@ -58,6 +58,7 @@ public class MainFrame extends JFrame {
     private final CardLayout cardLayout = new CardLayout();
     private JPanel contentCards;
     private StudentPackageListPanel loadedStudentPackagePanel;
+    private DashboardPanel loadedDashboardPanel;
     private Runnable logoutCallback;
     private boolean loggingOut;
 
@@ -112,7 +113,10 @@ public class MainFrame extends JFrame {
         setLayout(new BorderLayout());
 
         contentCards = new JPanel(cardLayout);
-        addCard(user, NavTarget.DASHBOARD, dashboardPanel);
+        if (NavTarget.DASHBOARD.isAllowedFor(user)) {
+            loadedDashboardPanel = dashboardPanel.getObject();
+            contentCards.add(loadedDashboardPanel, NavTarget.DASHBOARD.key());
+        }
         addCard(user, NavTarget.STUDIO, studioPanel);
         addCard(user, NavTarget.INSTRUCTOR, instructorPanel);
         addCard(user, NavTarget.USERS, userPanel);
@@ -181,6 +185,9 @@ public class MainFrame extends JFrame {
     }
 
     public void showPanel(String name) {
+        if (NavTarget.DASHBOARD.key().equals(name) && loadedDashboardPanel != null) {
+            loadedDashboardPanel.reload();
+        }
         if (NavTarget.STUDENT_PACKAGE.key().equals(name) && loadedStudentPackagePanel != null) {
             loadedStudentPackagePanel.reload();
         }

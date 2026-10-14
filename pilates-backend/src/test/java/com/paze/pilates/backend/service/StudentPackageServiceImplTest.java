@@ -4,6 +4,13 @@ import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.SessionPackage;
 import com.paze.pilates.backend.domain.Student;
 import com.paze.pilates.backend.domain.StudentPackage;
+import com.paze.pilates.backend.domain.Instructor;
+import com.paze.pilates.backend.domain.Lesson;
+import com.paze.pilates.backend.domain.LessonParticipant;
+import com.paze.pilates.backend.domain.Room;
+import com.paze.pilates.backend.domain.SessionDebt;
+import com.paze.pilates.backend.domain.StudentLessonHistory;
+import com.paze.pilates.backend.repository.SessionDebtRepository;
 import com.paze.pilates.backend.repository.SessionPackageRepository;
 import com.paze.pilates.backend.repository.StudentPackageRepository;
 import com.paze.pilates.backend.repository.StudentRepository;
@@ -12,6 +19,7 @@ import com.paze.pilates.dto.RemainingSessionFilter;
 import com.paze.pilates.dto.StudentPackageDto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +48,8 @@ class StudentPackageServiceImplTest {
     private StudentRepository studentRepository;
     @Mock
     private SessionPackageRepository packageRepository;
+    @Mock
+    private SessionDebtRepository debtRepository;
 
     private StudentPackageServiceImpl service;
 
@@ -48,7 +58,7 @@ class StudentPackageServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new StudentPackageServiceImpl(repository, studentRepository, packageRepository,
+        service = new StudentPackageServiceImpl(repository, studentRepository, packageRepository, debtRepository,
                 TestSecurity.adminGuard());
         student = new Student("Ayşe", "Yılmaz");
         pkg = new SessionPackage("8'li Paket", new BigDecimal("1500"), 8, TODAY);
@@ -191,6 +201,63 @@ class StudentPackageServiceImplTest {
         service.cancel(5L);
 
         verify(repository).delete(sp);
+    }
+
+    @Test
+    @DisplayName("cancel: seansı kullanılmış atama iptal edilemez")
+    void cancel_used_throws() {
+        StudentPackage sp = new StudentPackage(student, pkg, TODAY);
+        sp.useSession();
+        when(repository.findById(5L)).thenReturn(Optional.of(sp));
+
+        assertThatThrownBy(() -> service.cancel(5L))
+                .hasMessage("student_package.error.cancel_used");
+        verify(repository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("assign: seans borcu yeni paketten düşülür ve borç satırları silinir")
+    void assign_settlesDebts() {
+        SessionDebt d1 = debtFor(student);
+        SessionDebt d2 = debtFor(student);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(packageRepository.findById(2L)).thenReturn(Optional.of(pkg));
+        when(repository.save(any(StudentPackage.class))).thenAnswer(i -> i.getArgument(0));
+        when(debtRepository.findByStudentIdOldestFirst(any())).thenReturn(List.of(d1, d2));
+
+        StudentPackageDto result = service.assign(1L, 2L, false, null);
+
+        assertThat(result.usedSessions()).isEqualTo(2);
+        assertThat(result.remainingSessions()).isEqualTo(6);
+        assertThat(d1.getHistory().getStudentPackage()).isNotNull();
+        verify(debtRepository).delete(d1);
+        verify(debtRepository).delete(d2);
+    }
+
+    @Test
+    @DisplayName("assign: paket borçtan küçükse kalan borç satırı silinmez")
+    void assign_settlesDebtsUpToPackageSize() {
+        SessionPackage single = new SessionPackage("Tek Seans", new BigDecimal("250"), 1, TODAY);
+        SessionDebt d1 = debtFor(student);
+        SessionDebt d2 = debtFor(student);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(packageRepository.findById(3L)).thenReturn(Optional.of(single));
+        when(repository.save(any(StudentPackage.class))).thenAnswer(i -> i.getArgument(0));
+        when(debtRepository.findByStudentIdOldestFirst(any())).thenReturn(List.of(d1, d2));
+
+        StudentPackageDto result = service.assign(1L, 3L, false, null);
+
+        assertThat(result.remainingSessions()).isZero();
+        verify(debtRepository).delete(d1);
+        verify(debtRepository, never()).delete(d2);
+        assertThat(d2.getHistory().getStudentPackage()).isNull();
+    }
+
+    private SessionDebt debtFor(Student s) {
+        Lesson lesson = new Lesson(new Instructor("Hoca", "Bir"), new Room("Salon", 6), TODAY.minusDays(3),
+                LocalTime.of(10, 0), LocalTime.of(11, 0));
+        StudentLessonHistory history = new StudentLessonHistory(new LessonParticipant(lesson, s), true, true);
+        return new SessionDebt(history);
     }
 
     @Test

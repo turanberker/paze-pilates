@@ -9,7 +9,7 @@ import java.util.List;
  * Bu yalnızca sunumdur; asıl kontrol servis katmanındadır.
  */
 public enum NavTarget {
-    DASHBOARD("dashboard", Permission.STUDIO_MANAGE),
+    DASHBOARD("dashboard", Permission.STUDIO_MANAGE, Permission.LESSON_VIEW_ALL),
     STUDIO("studio", Permission.STUDIO_MANAGE),
     INSTRUCTOR("instructor", Permission.INSTRUCTOR_MANAGE),
     USERS("users", Permission.USER_MANAGE),
