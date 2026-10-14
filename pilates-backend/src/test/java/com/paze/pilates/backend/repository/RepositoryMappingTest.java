@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.paze.pilates.backend.domain.AppUser;
 import com.paze.pilates.backend.domain.Instructor;
+import com.paze.pilates.backend.domain.Lesson;
 import com.paze.pilates.backend.domain.Room;
 import com.paze.pilates.backend.domain.SessionPackage;
 import com.paze.pilates.backend.domain.Student;
@@ -46,6 +47,9 @@ class RepositoryMappingTest {
 
     @Autowired
     private StudentPackageRepository studentPackageRepository;
+
+    @Autowired
+    private LessonRepository lessonRepository;
 
     @Test
     void savesUserWithTimestampsAndRejectsDuplicateUsername() {
@@ -138,5 +142,30 @@ class RepositoryMappingTest {
                 .extracting(sp -> sp.getStudent().getFirstName()).containsExactly("Zeynep");
         assertThat(studentPackageRepository.search("ZEY", false, false)).hasSize(1);
         assertThat(packageRepository.findByActiveTrueOrderByNameAsc()).hasSize(1);
+    }
+
+    @Test
+    void detectsRoomAndInstructorOverlapButNotBackToBack() {
+        Room room = roomRepository.save(new Room("Reformer", 6));
+        Room otherRoom = roomRepository.save(new Room("Mat", 10));
+        Instructor ayse = instructorRepository.save(new Instructor("Ayşe", "Yılmaz"));
+        Instructor can = instructorRepository.save(new Instructor("Can", "Demir"));
+        LocalDate day = LocalDate.of(2026, 11, 2);
+        lessonRepository.saveAndFlush(new Lesson(ayse, room, day, LocalTime.of(10, 0), LocalTime.of(11, 0)));
+        entityManager.clear();
+
+        // kısmi çakışma
+        assertThat(lessonRepository.existsRoomOverlap(room.getId(), day, LocalTime.of(10, 30), LocalTime.of(11, 30))).isTrue();
+        assertThat(lessonRepository.existsInstructorOverlap(ayse.getId(), day, LocalTime.of(9, 30), LocalTime.of(10, 30))).isTrue();
+        // arka arkaya çakışma değil
+        assertThat(lessonRepository.existsRoomOverlap(room.getId(), day, LocalTime.of(11, 0), LocalTime.of(12, 0))).isFalse();
+        assertThat(lessonRepository.existsInstructorOverlap(ayse.getId(), day, LocalTime.of(9, 0), LocalTime.of(10, 0))).isFalse();
+        // başka oda / hoca / gün
+        assertThat(lessonRepository.existsRoomOverlap(otherRoom.getId(), day, LocalTime.of(10, 0), LocalTime.of(11, 0))).isFalse();
+        assertThat(lessonRepository.existsInstructorOverlap(can.getId(), day, LocalTime.of(10, 0), LocalTime.of(11, 0))).isFalse();
+        assertThat(lessonRepository.existsRoomOverlap(room.getId(), day.plusDays(1), LocalTime.of(10, 0), LocalTime.of(11, 0))).isFalse();
+        // hafta sorgusu
+        assertThat(lessonRepository.findBetween(day, day.plusDays(6))).hasSize(1);
+        assertThat(lessonRepository.findBetween(day.plusDays(1), day.plusDays(6))).isEmpty();
     }
 }
