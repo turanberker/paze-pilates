@@ -1,0 +1,29 @@
+paze:
+  db:
+    # H2 dosya yolu (uzantısız). Yedekleme için farklı bir dizine yönlendirilebilir.
+    path: ./data/studio
+
+spring:
+  application:
+    name: paze-pilates
+  main:
+    web-application-type: none
+    banner-mode: off
+  config:
+    # Gizli/yerel ayarlar (gitignore'da); dosya yoksa atlanır
+    import: optional:classpath:application-local.yml,optional:file:./application-local.yml
+  datasource:
+    url: jdbc:h2:file:${paze.db.path};AUTO_SERVER=FALSE
+    username: sa
+    password:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    fallback-to-system-locale: false

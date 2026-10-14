@@ -1,0 +1,15 @@
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+.idea/
+.vscode/
+.classpath
+.project
+.settings/
+data/*.db
+data/*.mv.db
+data/*.trace.db
+application-local.yml

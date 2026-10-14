@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.paze.pilates</groupId>
+        <artifactId>paze-pilates</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>pilates-desktop</artifactId>
+    <name>Paze Pilates - Desktop</name>
+    <description>Swing masaüstü arayüzü ve uygulama giriş noktası</description>
+
+    <dependencies>
+        <!-- Servis arayüzleri ve DTO'lar; backend entity/impl yoktur -->
+        <dependency>
+            <groupId>com.paze.pilates</groupId>
+            <artifactId>pilates-dto</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.paze.pilates</groupId>
+            <artifactId>pilates-service-common</artifactId>
+        </dependency>
+        <!-- Gömülü monolit: impl'lar runtime'da Spring tarafından bulunur; derleme bağımlılığı yok -->
+        <dependency>
+            <groupId>com.paze.pilates</groupId>
+            <artifactId>pilates-backend</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.paze.pilates.PazePilatesApplication</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

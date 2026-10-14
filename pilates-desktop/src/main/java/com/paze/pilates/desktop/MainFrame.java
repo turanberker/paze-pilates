@@ -1,0 +1,136 @@
+package com.paze.pilates.desktop;
+
+import com.paze.pilates.desktop.ui.finance.PaymentPanel;
+import com.paze.pilates.desktop.ui.instructor.InstructorListPanel;
+import com.paze.pilates.desktop.ui.main.DashboardPanel;
+import com.paze.pilates.desktop.ui.main.MainMenuPanel;
+import com.paze.pilates.desktop.ui.report.ReportPanel;
+import com.paze.pilates.desktop.ui.reservation.CalendarPanel;
+import com.paze.pilates.desktop.ui.shared.NotificationBar;
+import com.paze.pilates.desktop.ui.student.StudentListPanel;
+import com.paze.pilates.desktop.ui.studio.StudioPanel;
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.Dimension;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.Locale;
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.WindowConstants;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.MessageSource;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Component;
+
+@Lazy
+@Component
+public class MainFrame extends JFrame {
+
+    private final ConfigurableApplicationContext context;
+    private final MessageSource messages;
+    private final MainMenuPanel menuPanel;
+    private final NotificationBar notificationBar;
+
+    private final DashboardPanel dashboardPanel;
+    private final StudioPanel studioPanel;
+    private final InstructorListPanel instructorPanel;
+    private final StudentListPanel studentPanel;
+    private final CalendarPanel calendarPanel;
+    private final PaymentPanel paymentPanel;
+    private final ReportPanel reportPanel;
+
+    private final CardLayout cardLayout = new CardLayout();
+    private JPanel contentCards;
+
+    public MainFrame(
+            ConfigurableApplicationContext context,
+            MessageSource messages,
+            MainMenuPanel menuPanel,
+            NotificationBar notificationBar,
+            DashboardPanel dashboardPanel,
+            StudioPanel studioPanel,
+            InstructorListPanel instructorPanel,
+            StudentListPanel studentPanel,
+            CalendarPanel calendarPanel,
+            PaymentPanel paymentPanel,
+            ReportPanel reportPanel) {
+
+        this.context = context;
+        this.messages = messages;
+        this.menuPanel = menuPanel;
+        this.notificationBar = notificationBar;
+        this.dashboardPanel = dashboardPanel;
+        this.studioPanel = studioPanel;
+        this.instructorPanel = instructorPanel;
+        this.studentPanel = studentPanel;
+        this.calendarPanel = calendarPanel;
+        this.paymentPanel = paymentPanel;
+        this.reportPanel = reportPanel;
+
+        initComponents();
+    }
+
+    private void initComponents() {
+        setTitle(text("app.title"));
+        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        setMinimumSize(new Dimension(1024, 700));
+        setLayout(new BorderLayout());
+
+        contentCards = new JPanel(cardLayout);
+        contentCards.add(dashboardPanel, "dashboard");
+        contentCards.add(studioPanel,    "studio");
+        contentCards.add(instructorPanel,"instructor");
+        contentCards.add(studentPanel,   "student");
+        contentCards.add(calendarPanel,  "calendar");
+        contentCards.add(paymentPanel,   "finance");
+        contentCards.add(reportPanel,    "report");
+
+        JPanel rightSide = new JPanel();
+        rightSide.setLayout(new BoxLayout(rightSide, BoxLayout.Y_AXIS));
+        rightSide.add(notificationBar);
+        rightSide.add(contentCards);
+        rightSide.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+
+        menuPanel.setNavCallback(this::showPanel);
+
+        add(menuPanel, BorderLayout.WEST);
+        add(rightSide, BorderLayout.CENTER);
+
+        showPanel("dashboard");
+
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                context.close();
+                System.exit(0);
+            }
+        });
+    }
+
+    public void showPanel(String name) {
+        cardLayout.show(contentCards, name);
+        menuPanel.setActive(name);
+    }
+
+    public void showSuccess(String message) {
+        notificationBar.showSuccess(message);
+    }
+
+    public void showError(String message) {
+        notificationBar.showError(message);
+    }
+
+    public void showWindow() {
+        pack();
+        setSize(1280, 800);
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+
+    private String text(String key) {
+        return messages.getMessage(key, null, Locale.getDefault());
+    }
+}
