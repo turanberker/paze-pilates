@@ -9,6 +9,8 @@ public enum Permission {
     PACKAGE_MANAGE,
     PAYMENT_MANAGE,
     LESSON_MANAGE,
+    /** Yalnızca kendi adına ders açma; kendi derslerinin katılımcılarını yönetme. */
+    LESSON_MANAGE_OWN,
     LESSON_VIEW_ALL,
     LESSON_VIEW_OWN,
     REPORT_VIEW

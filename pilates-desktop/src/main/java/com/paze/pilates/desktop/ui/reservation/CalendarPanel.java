@@ -3,7 +3,7 @@ package com.paze.pilates.desktop.ui.reservation;
 import com.paze.pilates.desktop.ui.shared.NotificationBar;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.LessonDto;
-import com.paze.pilates.dto.Permission;
+import com.paze.pilates.dto.AppUserDto;
 import com.paze.pilates.service.AuthService;
 import com.paze.pilates.service.LessonService;
 import java.awt.BorderLayout;
@@ -104,7 +104,7 @@ public class CalendarPanel extends JPanel {
         nav.add(next);
         nav.add(weekLabel);
         top.add(nav, BorderLayout.WEST);
-        if (canManageLessons()) {
+        if (canOpenLessons()) {
             JLabel hint = new JLabel(text("calendar.hint"));
             hint.setHorizontalAlignment(SwingConstants.RIGHT);
             top.add(hint, BorderLayout.EAST);
@@ -171,8 +171,8 @@ public class CalendarPanel extends JPanel {
         }
         table.changeSelection(row, col, false, false);
         JPopupMenu menu = new JPopupMenu();
-        boolean canManage = canManageLessons();
-        if (canManage) {
+        boolean canOpen = canOpenLessons();
+        if (canOpen) {
             JMenuItem open = new JMenuItem(text("calendar.menu.open_lesson"));
             open.addActionListener(a -> onOpenLesson(row, col));
             menu.add(open);
@@ -194,7 +194,7 @@ public class CalendarPanel extends JPanel {
                 }
             });
             sub.add(show);
-            if (canManage) {
+            if (canManageLesson(lesson)) {
                 JMenuItem add = new JMenuItem(text("calendar.menu.add_student"));
                 add.addActionListener(a -> onAddStudent(lesson));
                 sub.add(add);
@@ -206,9 +206,13 @@ public class CalendarPanel extends JPanel {
         }
     }
 
-    /** Hoca salt okunur görür; ders açma ve katılımcı ekleme/çıkarma yetkisi ders yönetimine bağlıdır. */
-    private boolean canManageLessons() {
-        return authService.getCurrentUser().map(u -> u.has(Permission.LESSON_MANAGE)).orElse(false);
+    /** Yönetici her derse, hoca yalnızca kendi dersine işlem yapar; asıl kontrol serviste. */
+    private boolean canOpenLessons() {
+        return authService.getCurrentUser().map(AppUserDto::canOpenLessons).orElse(false);
+    }
+
+    private boolean canManageLesson(LessonDto lesson) {
+        return authService.getCurrentUser().map(u -> u.canManageLessonOf(lesson.instructorId())).orElse(false);
     }
 
     private void onAddStudent(LessonDto lesson) {

@@ -3,7 +3,6 @@ package com.paze.pilates.desktop.ui.reservation;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.LessonDto;
 import com.paze.pilates.dto.LessonParticipantDto;
-import com.paze.pilates.dto.Permission;
 import com.paze.pilates.service.AuthService;
 import com.paze.pilates.service.LessonService;
 import java.awt.BorderLayout;
@@ -86,7 +85,7 @@ public class LessonParticipantsDialog extends JDialog {
         bottom.setBorder(BorderFactory.createEmptyBorder(0, 20, 12, 20));
         bottom.add(statusLabel, BorderLayout.WEST);
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        if (authService.getCurrentUser().map(u -> u.has(Permission.LESSON_MANAGE)).orElse(false)) {
+        if (authService.getCurrentUser().map(u -> u.canManageLessonOf(lesson.instructorId())).orElse(false)) {
             buttons.add(removeBtn);
         }
         buttons.add(closeBtn);

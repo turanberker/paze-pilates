@@ -24,4 +24,15 @@ public record AppUserDto(
     public boolean has(Permission permission) {
         return permissions.contains(permission);
     }
+
+    /** Derste (veya o hocaya) işlem yapabilir mi; yalnızca sunum için, asıl kontrol serviste. */
+    public boolean canManageLessonOf(Long lessonInstructorId) {
+        return has(Permission.LESSON_MANAGE)
+                || (has(Permission.LESSON_MANAGE_OWN) && lessonInstructorId != null
+                && lessonInstructorId.equals(instructorId));
+    }
+
+    public boolean canOpenLessons() {
+        return has(Permission.LESSON_MANAGE) || has(Permission.LESSON_MANAGE_OWN);
+    }
 }
