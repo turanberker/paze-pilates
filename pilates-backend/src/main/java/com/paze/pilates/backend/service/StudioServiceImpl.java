@@ -11,6 +11,7 @@ import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.RoomDto;
 import com.paze.pilates.dto.StudioDto;
+import com.paze.pilates.dto.StudioSettingsDto;
 import com.paze.pilates.service.StudioService;
 import java.util.List;
 import java.util.Optional;
@@ -45,18 +46,28 @@ public class StudioServiceImpl implements StudioService {
     }
 
     @Override
-    @Transactional
-    public StudioDto saveStudio(StudioDto dto) {
+    @Transactional(readOnly = true)
+    public StudioSettingsDto getSettings() {
         guard.require(Permission.STUDIO_MANAGE);
-        if (dto.name() == null || dto.name().isBlank()) {
-            throw new BusinessException("studio.error.name_required");
-        }
-        Studio studio = (dto.id() != null)
-                ? studioRepository.findById(dto.id()).orElseThrow()
-                : new Studio(dto.name());
-        studio.setName(dto.name().trim());
-        Studio saved = studioRepository.save(studio);
-        return studioMapper.toDto(saved);
+        return studioMapper.toSettingsDto(requireStudio());
+    }
+
+    @Override
+    @Transactional
+    public void updateSettings(StudioSettingsDto settings) {
+        guard.require(Permission.STUDIO_MANAGE);
+        String name = StudioRules.name(settings.name());
+        byte[] logo = StudioRules.logo(settings.logo());
+        Studio studio = requireStudio();
+        studio.setName(name);
+        studio.setLogo(logo);
+        studioRepository.save(studio);
+    }
+
+    /** Stüdyo kurulumda oluşturulur; kayıt yoksa ayar ekranı kullanılamaz. */
+    private Studio requireStudio() {
+        return studioRepository.findFirstByOrderByIdAsc()
+                .orElseThrow(() -> new BusinessException("studio.error.not_found"));
     }
 
     @Override

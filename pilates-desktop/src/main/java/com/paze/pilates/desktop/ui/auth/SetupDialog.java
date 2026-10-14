@@ -1,6 +1,6 @@
 package com.paze.pilates.desktop.ui.auth;
 
-import com.paze.pilates.desktop.ui.shared.LogoImages;
+import com.paze.pilates.desktop.ui.shared.LogoPicker;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.SetupRequestDto;
 import com.paze.pilates.service.AuthService;
@@ -12,25 +12,17 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
-import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
-import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
-import javax.swing.UIManager;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -45,9 +37,6 @@ public class SetupDialog extends JDialog {
 
     public enum Result { COMPLETED, SYSTEM_LOGIN, CANCELLED }
 
-    private static final int LOGO_PREVIEW_WIDTH = 120;
-    private static final int LOGO_PREVIEW_HEIGHT = 56;
-
     private static final Logger log = LoggerFactory.getLogger(SetupDialog.class);
 
     private final SetupService setupService;
@@ -61,9 +50,7 @@ public class SetupDialog extends JDialog {
     private JPasswordField confirmField;
     private JLabel errorLabel;
     private JButton saveBtn;
-    private JLabel logoPreview;
-    private JButton removeLogoBtn;
-    private byte[] logoBytes;
+    private LogoPicker logoPicker;
 
     private Result result = Result.CANCELLED;
 
@@ -93,20 +80,21 @@ public class SetupDialog extends JDialog {
         c.insets = new Insets(0, 0, 16, 0);
         form.add(info, c);
 
+        errorLabel = new JLabel(" ");
+        errorLabel.setForeground(new Color(220, 38, 38));
         studioNameField = new JTextField(24);
         fullNameField = new JTextField(24);
         usernameField = new JTextField(24);
         passwordField = new JPasswordField(24);
         confirmField = new JPasswordField(24);
         addRow(form, c, 1, "setup.label.studio_name", studioNameField);
-        addRow(form, c, 2, "setup.label.logo", buildLogoPicker());
+        logoPicker = new LogoPicker(messages, errorLabel::setText);
+        addRow(form, c, 2, "setup.label.logo", logoPicker);
         addRow(form, c, 3, "setup.label.full_name", fullNameField);
         addRow(form, c, 4, "setup.label.username", usernameField);
         addRow(form, c, 5, "setup.label.password", passwordField);
         addRow(form, c, 6, "setup.label.password_confirm", confirmField);
 
-        errorLabel = new JLabel(" ");
-        errorLabel.setForeground(new Color(220, 38, 38));
         c.gridy = 14;
         c.insets = new Insets(0, 0, 0, 0);
         form.add(errorLabel, c);
@@ -134,77 +122,6 @@ public class SetupDialog extends JDialog {
         setLocationRelativeTo(null);
     }
 
-    /** Önizleme + Seç/Kaldır düğmeleri; logo isteğe bağlıdır. */
-    private JPanel buildLogoPicker() {
-        logoPreview = new JLabel(text("setup.logo.none"), SwingConstants.CENTER);
-        logoPreview.setPreferredSize(new Dimension(LOGO_PREVIEW_WIDTH, LOGO_PREVIEW_HEIGHT));
-        logoPreview.setBorder(BorderFactory.createLineBorder(UIManager.getColor("Component.borderColor")));
-
-        JButton chooseBtn = new JButton(text("setup.logo.button.choose"));
-        chooseBtn.addActionListener(e -> onChooseLogo());
-        removeLogoBtn = new JButton(text("setup.logo.button.remove"));
-        removeLogoBtn.setEnabled(false);
-        removeLogoBtn.addActionListener(e -> setLogo(null, null));
-
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        buttons.add(chooseBtn);
-        buttons.add(removeLogoBtn);
-        JLabel hint = new JLabel(messages.getMessage("setup.logo.hint",
-                new Object[] {SetupRequestDto.LOGO_MAX_BYTES / 1024}, Locale.getDefault()));
-        hint.setForeground(UIManager.getColor("Label.disabledForeground"));
-        hint.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 0));
-
-        JPanel right = new JPanel(new BorderLayout(0, 4));
-        right.add(buttons, BorderLayout.NORTH);
-        right.add(hint, BorderLayout.CENTER);
-
-        JPanel picker = new JPanel(new BorderLayout(10, 0));
-        picker.add(logoPreview, BorderLayout.WEST);
-        picker.add(right, BorderLayout.CENTER);
-        return picker;
-    }
-
-    private void onChooseLogo() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setAcceptAllFileFilterUsed(false);
-        chooser.setFileFilter(new FileNameExtensionFilter(text("setup.logo.file_filter"), "png", "jpg", "jpeg"));
-        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
-            return;
-        }
-        File file = chooser.getSelectedFile();
-        errorLabel.setText(" ");
-        // Çok büyük bir dosyayı belleğe almamak için boyut okumadan önce bakılır; asıl kontrol serviste.
-        if (file.length() > SetupRequestDto.LOGO_MAX_BYTES) {
-            errorLabel.setText(messages.getMessage("setup.error.logo_too_large",
-                    new Object[] {SetupRequestDto.LOGO_MAX_BYTES / 1024}, Locale.getDefault()));
-            return;
-        }
-        try {
-            byte[] data = Files.readAllBytes(file.toPath());
-            BufferedImage image = LogoImages.decode(data);
-            if (image == null) {
-                errorLabel.setText(text("setup.error.logo_invalid_format"));
-                return;
-            }
-            setLogo(data, image);
-        } catch (IOException ex) {
-            log.warn("Logo dosyası okunamadı: {}", file, ex);
-            errorLabel.setText(text("setup.error.logo_read_failed"));
-        }
-    }
-
-    private void setLogo(byte[] data, BufferedImage image) {
-        logoBytes = data;
-        if (image == null) {
-            logoPreview.setIcon(null);
-            logoPreview.setText(text("setup.logo.none"));
-        } else {
-            logoPreview.setText(null);
-            logoPreview.setIcon(LogoImages.fit(image, LOGO_PREVIEW_WIDTH - 8, LOGO_PREVIEW_HEIGHT - 8));
-        }
-        removeLogoBtn.setEnabled(data != null);
-    }
-
     private void addRow(JPanel form, GridBagConstraints c, int row, String labelKey, JComponent field) {
         c.gridy = row * 2;
         c.insets = new Insets(0, 0, 4, 0);
@@ -217,7 +134,7 @@ public class SetupDialog extends JDialog {
     private void onSave() {
         SetupRequestDto request = new SetupRequestDto(
                 studioNameField.getText(), fullNameField.getText(), usernameField.getText(),
-                new String(passwordField.getPassword()), new String(confirmField.getPassword()), logoBytes);
+                new String(passwordField.getPassword()), new String(confirmField.getPassword()), logoPicker.getLogo());
         saveBtn.setEnabled(false);
         errorLabel.setText(" ");
         new SwingWorker<Boolean, Void>() {

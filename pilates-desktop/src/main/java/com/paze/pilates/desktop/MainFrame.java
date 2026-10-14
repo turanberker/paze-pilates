@@ -9,6 +9,7 @@ import com.paze.pilates.desktop.ui.main.MainMenuBar;
 import com.paze.pilates.desktop.ui.main.NavTarget;
 import com.paze.pilates.desktop.ui.report.ReportPanel;
 import com.paze.pilates.desktop.ui.reservation.CalendarPanel;
+import com.paze.pilates.desktop.ui.settings.StudioSettingsPanel;
 import com.paze.pilates.desktop.ui.shared.LogoImages;
 import com.paze.pilates.desktop.ui.shared.NotificationBar;
 import com.paze.pilates.desktop.ui.student.StudentListPanel;
@@ -66,11 +67,13 @@ public class MainFrame extends JFrame {
     private final ObjectProvider<PackageListPanel> packagePanel;
     private final ObjectProvider<PaymentPanel> paymentPanel;
     private final ObjectProvider<ReportPanel> reportPanel;
+    private final ObjectProvider<StudioSettingsPanel> studioSettingsPanel;
 
     private final CardLayout cardLayout = new CardLayout();
     private JPanel contentCards;
     private StudentPackageListPanel loadedStudentPackagePanel;
     private DashboardPanel loadedDashboardPanel;
+    private StudioSettingsPanel loadedStudioSettingsPanel;
     private Runnable logoutCallback;
     private boolean loggingOut;
 
@@ -95,7 +98,8 @@ public class MainFrame extends JFrame {
             ObjectProvider<CalendarPanel> calendarPanel,
             ObjectProvider<PackageListPanel> packagePanel,
             ObjectProvider<PaymentPanel> paymentPanel,
-            ObjectProvider<ReportPanel> reportPanel) {
+            ObjectProvider<ReportPanel> reportPanel,
+            ObjectProvider<StudioSettingsPanel> studioSettingsPanel) {
 
         this.context = context;
         this.messages = messages;
@@ -114,6 +118,7 @@ public class MainFrame extends JFrame {
         this.packagePanel = packagePanel;
         this.paymentPanel = paymentPanel;
         this.reportPanel = reportPanel;
+        this.studioSettingsPanel = studioSettingsPanel;
 
         initComponents();
     }
@@ -143,6 +148,11 @@ public class MainFrame extends JFrame {
         addCard(user, NavTarget.PACKAGE, packagePanel);
         addCard(user, NavTarget.FINANCE, paymentPanel);
         addCard(user, NavTarget.REPORT, reportPanel);
+        if (NavTarget.STUDIO_SETTINGS.isAllowedFor(user)) {
+            loadedStudioSettingsPanel = studioSettingsPanel.getObject();
+            loadedStudioSettingsPanel.setOnSaved(this::loadLogo);
+            contentCards.add(loadedStudioSettingsPanel, NavTarget.STUDIO_SETTINGS.key());
+        }
 
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
@@ -172,7 +182,7 @@ public class MainFrame extends JFrame {
         });
     }
 
-    /** Stüdyo logosunu arka planda yükler; logo yoksa header ve pencere ikonu değişmez. */
+    /** Stüdyo logosunu arka planda yükler; logo yoksa header ve pencere ikonu varsayılan görünümde kalır. */
     private void loadLogo() {
         new SwingWorker<BufferedImage, Void>() {
             @Override protected BufferedImage doInBackground() {
@@ -181,10 +191,9 @@ public class MainFrame extends JFrame {
             @Override protected void done() {
                 try {
                     BufferedImage logo = get();
-                    if (logo != null) {
-                        menuBar.setLogo(LogoImages.fit(logo, HEADER_LOGO_MAX_WIDTH, HEADER_LOGO_HEIGHT));
-                        setIconImage(logo);
-                    }
+                    menuBar.setLogo(logo == null ? null
+                            : LogoImages.fit(logo, HEADER_LOGO_MAX_WIDTH, HEADER_LOGO_HEIGHT));
+                    setIconImage(logo);
                 } catch (ExecutionException ex) {
                     log.warn("Stüdyo logosu yüklenemedi", ex.getCause());
                 } catch (InterruptedException ex) {
@@ -227,6 +236,9 @@ public class MainFrame extends JFrame {
         }
         if (NavTarget.STUDENT_PACKAGE.key().equals(name) && loadedStudentPackagePanel != null) {
             loadedStudentPackagePanel.reload();
+        }
+        if (NavTarget.STUDIO_SETTINGS.key().equals(name) && loadedStudioSettingsPanel != null) {
+            loadedStudioSettingsPanel.reload();
         }
         cardLayout.show(contentCards, name);
     }

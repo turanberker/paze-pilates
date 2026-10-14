@@ -15,6 +15,7 @@ import com.paze.pilates.backend.repository.StudioRepository;
 import com.paze.pilates.backend.security.StaticAdminProperties;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.SetupRequestDto;
+import com.paze.pilates.dto.StudioDto;
 import com.paze.pilates.dto.UserRole;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,7 +104,7 @@ class SetupServiceImplTest {
 
         assertThatThrownBy(() -> service.completeSetup(
                 new SetupRequestDto(" ", "Ayşe Yılmaz", "ayse", "sifre1234", "sifre1234", null)))
-                .hasMessage("setup.error.studio_name_required");
+                .hasMessage("studio.error.name_required");
         assertThatThrownBy(() -> service.completeSetup(
                 new SetupRequestDto("Paze", "", "ayse", "sifre1234", "sifre1234", null)))
                 .hasMessage("setup.error.full_name_required");
@@ -141,15 +142,15 @@ class SetupServiceImplTest {
     void completeSetup_rejectsNonImageOrTooLargeLogo() {
         when(userRepository.count()).thenReturn(0L);
         byte[] gif = {'G', 'I', 'F', '8', '9', 'a'};
-        byte[] tooLarge = new byte[SetupRequestDto.LOGO_MAX_BYTES + 1];
+        byte[] tooLarge = new byte[StudioDto.LOGO_MAX_BYTES + 1];
         tooLarge[0] = (byte) 0xFF;
         tooLarge[1] = (byte) 0xD8;
         tooLarge[2] = (byte) 0xFF;
 
         assertThatThrownBy(() -> service.completeSetup(withLogo(gif)))
-                .hasMessage("setup.error.logo_invalid_format");
+                .hasMessage("studio.error.logo_invalid_format");
         assertThatThrownBy(() -> service.completeSetup(withLogo(tooLarge)))
-                .hasMessage("setup.error.logo_too_large");
+                .hasMessage("studio.error.logo_too_large");
         verify(studioRepository, never()).save(any());
         verify(userRepository, never()).save(any());
     }

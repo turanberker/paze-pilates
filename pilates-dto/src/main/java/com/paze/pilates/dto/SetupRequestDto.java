@@ -13,7 +13,4 @@ public record SetupRequestDto(
         String passwordConfirm,
         byte[] logo
 ) {
-
-    /** Header logosu için izin verilen en büyük dosya boyutu (bayt). */
-    public static final int LOGO_MAX_BYTES = 512 * 1024;
 }

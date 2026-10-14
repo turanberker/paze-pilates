@@ -11,7 +11,6 @@ import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.SetupRequestDto;
 import com.paze.pilates.dto.UserRole;
 import com.paze.pilates.service.SetupService;
-import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,8 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class SetupServiceImpl implements SetupService {
 
     private static final int NAME_MAX_LENGTH = 100;
-    private static final byte[] PNG_SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
-    private static final byte[] JPEG_SIGNATURE = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
 
     private final AppUserRepository userRepository;
     private final StudioRepository studioRepository;
@@ -48,13 +45,12 @@ public class SetupServiceImpl implements SetupService {
         if (userRepository.count() > 0) {
             throw new BusinessException("setup.error.already_done");
         }
-        String studioName = required(request.studioName(), "setup.error.studio_name_required",
-                "setup.error.studio_name_too_long");
+        String studioName = StudioRules.name(request.studioName());
         String fullName = required(request.adminFullName(), "setup.error.full_name_required",
                 "setup.error.full_name_too_long");
         String username = UsernamePolicy.normalize(request.username(), staticAdmin);
         passwordPolicy.validate(request.password(), request.passwordConfirm());
-        byte[] logo = validLogo(request.logo());
+        byte[] logo = StudioRules.logo(request.logo());
 
         studioRepository.findFirstByOrderByIdAsc().ifPresentOrElse(
                 studio -> {
@@ -70,25 +66,6 @@ public class SetupServiceImpl implements SetupService {
 
         userRepository.save(new AppUser(username, passwordEncoder.encode(request.password()),
                 fullName, UserRole.ADMIN));
-    }
-
-    /** Logo isteğe bağlıdır; verildiyse boyutu sınırlıdır ve PNG ya da JPEG olmalıdır. */
-    private static byte[] validLogo(byte[] logo) {
-        if (logo == null || logo.length == 0) {
-            return null;
-        }
-        if (logo.length > SetupRequestDto.LOGO_MAX_BYTES) {
-            throw new BusinessException("setup.error.logo_too_large", SetupRequestDto.LOGO_MAX_BYTES / 1024);
-        }
-        if (!startsWith(logo, PNG_SIGNATURE) && !startsWith(logo, JPEG_SIGNATURE)) {
-            throw new BusinessException("setup.error.logo_invalid_format");
-        }
-        return logo;
-    }
-
-    private static boolean startsWith(byte[] data, byte[] prefix) {
-        return data.length >= prefix.length
-                && Arrays.equals(data, 0, prefix.length, prefix, 0, prefix.length);
     }
 
     private static String required(String value, String requiredKey, String tooLongKey) {

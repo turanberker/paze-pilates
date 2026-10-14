@@ -83,6 +83,10 @@ public class MainMenuBar extends JMenuBar {
         addNav(reportMenu, user, "menu.report.overview", NavTarget.REPORT);
         addIfNotEmpty(reportMenu);
 
+        JMenu settingsMenu = new JMenu(text("menu.settings"));
+        addNav(settingsMenu, user, "menu.settings.studio", NavTarget.STUDIO_SETTINGS);
+        addIfNotEmpty(settingsMenu);
+
         add(Box.createHorizontalGlue());
         add(new JLabel(messages.getMessage("menu.user_info",
                 new Object[] {user.fullName(), text("role." + user.role().name())}, Locale.getDefault())));
