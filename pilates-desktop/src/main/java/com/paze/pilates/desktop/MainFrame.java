@@ -9,6 +9,7 @@ import com.paze.pilates.desktop.ui.main.MainMenuBar;
 import com.paze.pilates.desktop.ui.main.NavTarget;
 import com.paze.pilates.desktop.ui.report.ReportPanel;
 import com.paze.pilates.desktop.ui.reservation.CalendarPanel;
+import com.paze.pilates.desktop.ui.shared.LogoImages;
 import com.paze.pilates.desktop.ui.shared.NotificationBar;
 import com.paze.pilates.desktop.ui.student.StudentListPanel;
 import com.paze.pilates.desktop.ui.student.StudentPackageListPanel;
@@ -16,16 +17,22 @@ import com.paze.pilates.desktop.ui.studio.StudioPanel;
 import com.paze.pilates.desktop.ui.user.UserListPanel;
 import com.paze.pilates.dto.AppUserDto;
 import com.paze.pilates.service.AuthService;
+import com.paze.pilates.service.StudioService;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
 import java.util.Locale;
+import java.util.concurrent.ExecutionException;
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.SwingWorker;
 import javax.swing.WindowConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -37,9 +44,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class MainFrame extends JFrame {
 
+    private static final Logger log = LoggerFactory.getLogger(MainFrame.class);
+    private static final int HEADER_LOGO_HEIGHT = 24;
+    private static final int HEADER_LOGO_MAX_WIDTH = 120;
+
     private final ConfigurableApplicationContext context;
     private final MessageSource messages;
     private final AuthService authService;
+    private final StudioService studioService;
     private final MainMenuBar menuBar;
     private final NotificationBar notificationBar;
     private final ObjectProvider<ChangePasswordDialog> changePasswordDialogProvider;
@@ -70,6 +82,7 @@ public class MainFrame extends JFrame {
             ConfigurableApplicationContext context,
             MessageSource messages,
             AuthService authService,
+            StudioService studioService,
             MainMenuBar menuBar,
             NotificationBar notificationBar,
             ObjectProvider<ChangePasswordDialog> changePasswordDialogProvider,
@@ -87,6 +100,7 @@ public class MainFrame extends JFrame {
         this.context = context;
         this.messages = messages;
         this.authService = authService;
+        this.studioService = studioService;
         this.menuBar = menuBar;
         this.notificationBar = notificationBar;
         this.changePasswordDialogProvider = changePasswordDialogProvider;
@@ -142,6 +156,7 @@ public class MainFrame extends JFrame {
         setJMenuBar(menuBar);
 
         add(content, BorderLayout.CENTER);
+        loadLogo();
 
         showPanel(NavTarget.DASHBOARD.isAllowedFor(user) ? NavTarget.DASHBOARD.key() : NavTarget.CALENDAR.key());
 
@@ -155,6 +170,28 @@ public class MainFrame extends JFrame {
                 System.exit(0);
             }
         });
+    }
+
+    /** Stüdyo logosunu arka planda yükler; logo yoksa header ve pencere ikonu değişmez. */
+    private void loadLogo() {
+        new SwingWorker<BufferedImage, Void>() {
+            @Override protected BufferedImage doInBackground() {
+                return studioService.getLogo().map(LogoImages::decode).orElse(null);
+            }
+            @Override protected void done() {
+                try {
+                    BufferedImage logo = get();
+                    if (logo != null) {
+                        menuBar.setLogo(LogoImages.fit(logo, HEADER_LOGO_MAX_WIDTH, HEADER_LOGO_HEIGHT));
+                        setIconImage(logo);
+                    }
+                } catch (ExecutionException ex) {
+                    log.warn("Stüdyo logosu yüklenemedi", ex.getCause());
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }.execute();
     }
 
     /** Oturumu kapatır, pencereyi kapatır ve (verilmişse) giriş ekranına dönülmesini sağlar. */

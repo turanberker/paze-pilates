@@ -37,6 +37,14 @@ public class StudioServiceImpl implements StudioService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<byte[]> getLogo() {
+        guard.requireLoggedIn();
+        return studioRepository.findFirstByOrderByIdAsc()
+                .map(Studio::getLogo);
+    }
+
+    @Override
     @Transactional
     public StudioDto saveStudio(StudioDto dto) {
         guard.require(Permission.STUDIO_MANAGE);

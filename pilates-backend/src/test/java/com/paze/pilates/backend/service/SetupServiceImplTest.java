@@ -45,7 +45,7 @@ class SetupServiceImplTest {
     }
 
     private static SetupRequestDto request(String password, String confirm) {
-        return new SetupRequestDto("Paze Pilates", "Ayşe Yılmaz", "ayse", password, confirm);
+        return new SetupRequestDto("Paze Pilates", "Ayşe Yılmaz", "ayse", password, confirm, null);
     }
 
     @Test
@@ -102,14 +102,60 @@ class SetupServiceImplTest {
         when(userRepository.count()).thenReturn(0L);
 
         assertThatThrownBy(() -> service.completeSetup(
-                new SetupRequestDto(" ", "Ayşe Yılmaz", "ayse", "sifre1234", "sifre1234")))
+                new SetupRequestDto(" ", "Ayşe Yılmaz", "ayse", "sifre1234", "sifre1234", null)))
                 .hasMessage("setup.error.studio_name_required");
         assertThatThrownBy(() -> service.completeSetup(
-                new SetupRequestDto("Paze", "", "ayse", "sifre1234", "sifre1234")))
+                new SetupRequestDto("Paze", "", "ayse", "sifre1234", "sifre1234", null)))
                 .hasMessage("setup.error.full_name_required");
         assertThatThrownBy(() -> service.completeSetup(
-                new SetupRequestDto("Paze", "Ayşe", "sistem", "sifre1234", "sifre1234")))
+                new SetupRequestDto("Paze", "Ayşe", "sistem", "sifre1234", "sifre1234", null)))
                 .hasMessage("user.error.username_reserved");
+    }
+
+    @Test
+    void completeSetup_storesLogoOnStudio() {
+        when(userRepository.count()).thenReturn(0L);
+        when(studioRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.empty());
+        byte[] png = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 1, 2, 3};
+
+        service.completeSetup(withLogo(png));
+
+        ArgumentCaptor<Studio> studio = ArgumentCaptor.forClass(Studio.class);
+        verify(studioRepository).save(studio.capture());
+        assertThat(studio.getValue().getLogo()).isEqualTo(png);
+    }
+
+    @Test
+    void completeSetup_withoutLogoLeavesStudioLogoEmpty() {
+        when(userRepository.count()).thenReturn(0L);
+        when(studioRepository.findFirstByOrderByIdAsc()).thenReturn(Optional.empty());
+
+        service.completeSetup(withLogo(new byte[0]));
+
+        ArgumentCaptor<Studio> studio = ArgumentCaptor.forClass(Studio.class);
+        verify(studioRepository).save(studio.capture());
+        assertThat(studio.getValue().getLogo()).isNull();
+    }
+
+    @Test
+    void completeSetup_rejectsNonImageOrTooLargeLogo() {
+        when(userRepository.count()).thenReturn(0L);
+        byte[] gif = {'G', 'I', 'F', '8', '9', 'a'};
+        byte[] tooLarge = new byte[SetupRequestDto.LOGO_MAX_BYTES + 1];
+        tooLarge[0] = (byte) 0xFF;
+        tooLarge[1] = (byte) 0xD8;
+        tooLarge[2] = (byte) 0xFF;
+
+        assertThatThrownBy(() -> service.completeSetup(withLogo(gif)))
+                .hasMessage("setup.error.logo_invalid_format");
+        assertThatThrownBy(() -> service.completeSetup(withLogo(tooLarge)))
+                .hasMessage("setup.error.logo_too_large");
+        verify(studioRepository, never()).save(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    private static SetupRequestDto withLogo(byte[] logo) {
+        return new SetupRequestDto("Paze Pilates", "Ayşe Yılmaz", "ayse", "sifre1234", "sifre1234", logo);
     }
 
     @Test

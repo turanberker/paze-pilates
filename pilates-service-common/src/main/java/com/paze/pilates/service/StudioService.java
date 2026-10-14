@@ -9,6 +9,9 @@ public interface StudioService {
 
     Optional<StudioDto> getStudio();
 
+    /** Header'da gösterilecek stüdyo logosu; giriş yapmış her kullanıcı okuyabilir. */
+    Optional<byte[]> getLogo();
+
     StudioDto saveStudio(StudioDto dto);
 
     List<RoomDto> getRooms();
