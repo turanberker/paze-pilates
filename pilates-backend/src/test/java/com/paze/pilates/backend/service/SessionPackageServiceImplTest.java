@@ -2,6 +2,7 @@ package com.paze.pilates.backend.service;
 
 import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.SessionPackage;
+import com.paze.pilates.backend.mapper.SessionPackageMapper;
 import com.paze.pilates.backend.repository.SessionPackageRepository;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.SessionPackageDto;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -35,7 +37,8 @@ class SessionPackageServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new SessionPackageServiceImpl(repository, TestSecurity.adminGuard());
+        service = new SessionPackageServiceImpl(repository, TestSecurity.adminGuard(),
+                Mappers.getMapper(SessionPackageMapper.class));
     }
 
     @Test

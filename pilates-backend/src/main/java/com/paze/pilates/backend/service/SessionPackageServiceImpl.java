@@ -1,29 +1,27 @@
 package com.paze.pilates.backend.service;
 
 import com.paze.pilates.backend.domain.SessionPackage;
+import com.paze.pilates.backend.mapper.SessionPackageMapper;
 import com.paze.pilates.backend.repository.SessionPackageRepository;
 import com.paze.pilates.backend.security.PermissionGuard;
-import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.BusinessException;
+import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.SessionPackageDto;
 import com.paze.pilates.service.SessionPackageService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class SessionPackageServiceImpl implements SessionPackageService {
 
-    private final PermissionGuard guard;
-
     private final SessionPackageRepository repository;
-
-    public SessionPackageServiceImpl(SessionPackageRepository repository, PermissionGuard guard) {
-        this.guard = guard;
-        this.repository = repository;
-    }
+    private final PermissionGuard guard;
+    private final SessionPackageMapper mapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -31,7 +29,7 @@ public class SessionPackageServiceImpl implements SessionPackageService {
         guard.require(Permission.PACKAGE_MANAGE);
         return repository.findAllByOrderByStartDateDescNameAsc()
                 .stream()
-                .map(this::toDto)
+                .map(mapper::toDto)
                 .toList();
     }
 
@@ -41,7 +39,7 @@ public class SessionPackageServiceImpl implements SessionPackageService {
         guard.require(Permission.PACKAGE_MANAGE);
         return repository.findByActiveTrueOrderByNameAsc()
                 .stream()
-                .map(this::toDto)
+                .map(mapper::toDto)
                 .toList();
     }
 
@@ -62,7 +60,7 @@ public class SessionPackageServiceImpl implements SessionPackageService {
             p.setSessionCount(dto.sessionCount());
             p.setStartDate(dto.startDate());
         }
-        return toDto(repository.save(p));
+        return mapper.toDto(repository.save(p));
     }
 
     @Override
@@ -71,7 +69,7 @@ public class SessionPackageServiceImpl implements SessionPackageService {
         guard.require(Permission.PACKAGE_MANAGE);
         SessionPackage p = findOrThrow(id);
         p.setActive(true);
-        return toDto(repository.save(p));
+        return mapper.toDto(repository.save(p));
     }
 
     @Override
@@ -80,7 +78,7 @@ public class SessionPackageServiceImpl implements SessionPackageService {
         guard.require(Permission.PACKAGE_MANAGE);
         SessionPackage p = findOrThrow(id);
         p.setActive(false);
-        return toDto(repository.save(p));
+        return mapper.toDto(repository.save(p));
     }
 
     private SessionPackage findOrThrow(Long id) {
@@ -111,10 +109,5 @@ public class SessionPackageServiceImpl implements SessionPackageService {
 
     private BigDecimal scale(BigDecimal value) {
         return value.setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private SessionPackageDto toDto(SessionPackage p) {
-        return new SessionPackageDto(p.getId(), p.getName(), p.getPrice(),
-                p.getSessionCount(), p.getStartDate(), p.isActive());
     }
 }

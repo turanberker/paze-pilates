@@ -12,11 +12,13 @@ import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.UserRole;
 import com.paze.pilates.service.AuthService;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private final AppUserRepository userRepository;
@@ -25,20 +27,6 @@ public class AuthServiceImpl implements AuthService {
     private final RolePermissionResolver permissionResolver;
     private final StaticAdminProperties staticAdmin;
     private final PasswordPolicy passwordPolicy;
-
-    public AuthServiceImpl(AppUserRepository userRepository,
-                           PasswordEncoder passwordEncoder,
-                           SessionContext session,
-                           RolePermissionResolver permissionResolver,
-                           StaticAdminProperties staticAdmin,
-                           PasswordPolicy passwordPolicy) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.session = session;
-        this.permissionResolver = permissionResolver;
-        this.staticAdmin = staticAdmin;
-        this.passwordPolicy = passwordPolicy;
-    }
 
     @Override
     @Transactional(readOnly = true)

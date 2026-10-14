@@ -23,6 +23,7 @@ Hedef kullanıcı: Küçük-orta ölçekli pilates stüdyosu yöneticisi ve rese
 - **Veritabanı (Faz 1):** H2 dosya tabanlı (taşınabilir, EXE içinde çalışır)
 - **Veritabanı (Faz 2 — web):** PostgreSQL
 - **ORM:** Spring Data JPA + Hibernate
+- **Kod üretimi (backend):** Lombok + MapStruct
 - **Build:** Maven multi-modül (`pilates-dto` → `pilates-service-common` → `pilates-backend` → `pilates-desktop`)
 - **Migrasyon:** Liquibase (XML format, `db/changelog/v1.0.0/`)
 - **Paketleme:** jpackage (JRE dahil, native EXE)
@@ -49,6 +50,11 @@ Frontend backend ile http isteği üzerinden anlaşmak isterse bu kütüpane kul
 
 ### 3.5 Backend (Servis katmanı)
 Rezervasyon kuralları, çakışma kontrolü, paket/bakiye hesaplamaları, ödeme kaydı, raporlama mantığı.
+
+**Lombok ve MapStruct kuralı (backend):**
+- **Lombok:** Entity ve backend sınıflarında getter/setter/constructor/builder elle yazılmaz; `@Getter`, `@Setter`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@RequiredArgsConstructor` (constructor injection için), `@Builder` kullanılır. Entity'lerde `@Data` ve varsayılan `@EqualsAndHashCode`/`@ToString` kullanılmaz (lazy ilişkiler ve döngüsel referanslar nedeniyle).
+- **MapStruct:** Entity ↔ DTO dönüşümleri için `@Mapper(componentModel = "spring")` ile mapper arayüzleri yazılır; servislerde elle alan alan mapping yapılmaz. Mapper'lar `pilates-backend` içinde `mapper` paketinde durur; DTO'lar (`pilates-dto`) MapStruct'a bağımlı olmaz.
+- Lombok ve MapStruct annotation processor'ları `maven-compiler-plugin` içinde birlikte tanımlanır (`lombok`, `lombok-mapstruct-binding`, `mapstruct-processor`).
 
 ### Spring Data JPA (Repository katmanı)
 Tüm veritabanı erişimi. Sorgular Repository arayüzleri veya `@Query` ile yapılır; SQL doğrudan Swing'e yazılmaz.

@@ -1,5 +1,6 @@
 package com.paze.pilates.backend.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -10,15 +11,12 @@ import org.springframework.stereotype.Component;
  * Hash'i yazdırıp uygulamayı kapatır; çıktı application-local.yml'e yapıştırılır.
  */
 @Component
+@RequiredArgsConstructor
 public class PasswordHashCommand implements ApplicationRunner {
 
     private static final String OPTION = "hash-password";
 
     private final PasswordEncoder passwordEncoder;
-
-    public PasswordHashCommand(PasswordEncoder passwordEncoder) {
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @Override
     public void run(ApplicationArguments args) {

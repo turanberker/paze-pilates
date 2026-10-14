@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.AppUser;
 import com.paze.pilates.backend.domain.Instructor;
+import com.paze.pilates.backend.mapper.UserMapper;
 import com.paze.pilates.backend.repository.AppUserRepository;
 import com.paze.pilates.backend.repository.InstructorRepository;
 import com.paze.pilates.backend.security.StaticAdminProperties;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -44,7 +46,8 @@ class UserServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new UserServiceImpl(userRepository, instructorRepository, encoder,
-                TestSecurity.adminGuard(), staticAdmin, TestSecurity.defaultPasswordPolicy());
+                TestSecurity.adminGuard(), staticAdmin, TestSecurity.defaultPasswordPolicy(),
+                Mappers.getMapper(UserMapper.class));
         instructor = new Instructor("Ayşe", "Yılmaz");
         ReflectionTestUtils.setField(instructor, "id", 7L);
     }
@@ -216,7 +219,8 @@ class UserServiceImplTest {
     void allMethods_forbiddenForInstructorRole() {
         UserServiceImpl restricted = new UserServiceImpl(userRepository, instructorRepository, encoder,
                 TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)), staticAdmin,
-                TestSecurity.defaultPasswordPolicy());
+                TestSecurity.defaultPasswordPolicy(),
+                Mappers.getMapper(UserMapper.class));
 
         assertThatThrownBy(restricted::findAll).hasMessage("auth.error.forbidden");
         assertThatThrownBy(() -> restricted.createUser("x", "y", UserRole.ADMIN, null, "gecici1234"))

@@ -17,6 +17,9 @@ import com.paze.pilates.backend.domain.SessionPackage;
 import com.paze.pilates.backend.domain.Student;
 import com.paze.pilates.backend.domain.StudentLessonHistory;
 import com.paze.pilates.backend.domain.StudentPackage;
+import com.paze.pilates.backend.mapper.InstructorMapper;
+import com.paze.pilates.backend.mapper.LessonMapper;
+import com.paze.pilates.backend.mapper.RoomMapper;
 import com.paze.pilates.backend.repository.InstructorRepository;
 import com.paze.pilates.backend.repository.LessonParticipantRepository;
 import com.paze.pilates.backend.repository.LessonRepository;
@@ -38,6 +41,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -75,7 +79,10 @@ class LessonCompletionTest {
 
     private LessonServiceImpl service(PermissionGuard guard) {
         return new LessonServiceImpl(lessonRepository, instructorRepository, roomRepository, participantRepository,
-                studentRepository, studentPackageRepository, historyRepository, debtRepository, guard);
+                studentRepository, studentPackageRepository, historyRepository, debtRepository, guard,
+                Mappers.getMapper(LessonMapper.class),
+                Mappers.getMapper(InstructorMapper.class),
+                Mappers.getMapper(RoomMapper.class));
     }
 
     private LessonServiceImpl admin() {

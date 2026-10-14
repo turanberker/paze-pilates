@@ -5,7 +5,14 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "session_package")
 public class SessionPackage extends BaseEntity {
@@ -25,28 +32,10 @@ public class SessionPackage extends BaseEntity {
     @Column(nullable = false)
     private boolean active = true;
 
-    protected SessionPackage() {
-    }
-
     public SessionPackage(String name, BigDecimal price, int sessionCount, LocalDate startDate) {
         this.name = name;
         this.price = price;
         this.sessionCount = sessionCount;
         this.startDate = startDate;
     }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public BigDecimal getPrice() { return price; }
-    public void setPrice(BigDecimal price) { this.price = price; }
-
-    public int getSessionCount() { return sessionCount; }
-    public void setSessionCount(int sessionCount) { this.sessionCount = sessionCount; }
-
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-
-    public boolean isActive() { return active; }
-    public void setActive(boolean active) { this.active = active; }
 }

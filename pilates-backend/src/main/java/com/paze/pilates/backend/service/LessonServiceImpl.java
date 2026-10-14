@@ -8,6 +8,9 @@ import com.paze.pilates.backend.domain.SessionDebt;
 import com.paze.pilates.backend.domain.Student;
 import com.paze.pilates.backend.domain.StudentLessonHistory;
 import com.paze.pilates.backend.domain.StudentPackage;
+import com.paze.pilates.backend.mapper.InstructorMapper;
+import com.paze.pilates.backend.mapper.LessonMapper;
+import com.paze.pilates.backend.mapper.RoomMapper;
 import com.paze.pilates.backend.repository.InstructorRepository;
 import com.paze.pilates.backend.repository.LessonParticipantRepository;
 import com.paze.pilates.backend.repository.LessonRepository;
@@ -34,10 +37,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class LessonServiceImpl implements LessonService {
 
     private final LessonRepository lessonRepository;
@@ -49,26 +54,9 @@ public class LessonServiceImpl implements LessonService {
     private final StudentLessonHistoryRepository historyRepository;
     private final SessionDebtRepository debtRepository;
     private final PermissionGuard guard;
-
-    public LessonServiceImpl(LessonRepository lessonRepository,
-                             InstructorRepository instructorRepository,
-                             RoomRepository roomRepository,
-                             LessonParticipantRepository participantRepository,
-                             StudentRepository studentRepository,
-                             StudentPackageRepository studentPackageRepository,
-                             StudentLessonHistoryRepository historyRepository,
-                             SessionDebtRepository debtRepository,
-                             PermissionGuard guard) {
-        this.lessonRepository = lessonRepository;
-        this.instructorRepository = instructorRepository;
-        this.roomRepository = roomRepository;
-        this.participantRepository = participantRepository;
-        this.studentRepository = studentRepository;
-        this.studentPackageRepository = studentPackageRepository;
-        this.historyRepository = historyRepository;
-        this.debtRepository = debtRepository;
-        this.guard = guard;
-    }
+    private final LessonMapper lessonMapper;
+    private final InstructorMapper instructorMapper;
+    private final RoomMapper roomMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -100,7 +88,7 @@ public class LessonServiceImpl implements LessonService {
                 counts.put((Long) row[0], ((Long) row[1]).intValue());
             }
         }
-        return lessons.stream().map(l -> toDto(l, counts.getOrDefault(l.getId(), 0))).toList();
+        return lessons.stream().map(l -> lessonMapper.toDto(l, counts.getOrDefault(l.getId(), 0))).toList();
     }
 
     @Override
@@ -110,7 +98,7 @@ public class LessonServiceImpl implements LessonService {
         boolean all = guard.has(Permission.LESSON_MANAGE);
         return instructorRepository.findByActiveTrueOrderByFirstNameAscLastNameAsc().stream()
                 .filter(i -> all || (user.instructorId() != null && user.instructorId().equals(i.getId())))
-                .map(i -> new InstructorDto(i.getId(), i.getFirstName(), i.getLastName()))
+                .map(instructorMapper::toDto)
                 .toList();
     }
 
@@ -119,7 +107,7 @@ public class LessonServiceImpl implements LessonService {
     public List<RoomDto> findRoomsForLessons() {
         guard.requireAny(Permission.LESSON_MANAGE, Permission.LESSON_MANAGE_OWN);
         return roomRepository.findByActiveTrueOrderByNameAsc().stream()
-                .map(r -> new RoomDto(r.getId(), r.getName(), r.getCapacity()))
+                .map(roomMapper::toDto)
                 .toList();
     }
 
@@ -165,7 +153,7 @@ public class LessonServiceImpl implements LessonService {
             throw new BusinessException("lesson.error.instructor_conflict");
         }
 
-        return toDto(lessonRepository.save(new Lesson(instructor, room, date, startTime, endTime)), 0);
+        return lessonMapper.toDto(lessonRepository.save(new Lesson(instructor, room, date, startTime, endTime)), 0);
     }
 
     @Override
@@ -175,7 +163,7 @@ public class LessonServiceImpl implements LessonService {
         Map<Long, StudentLessonHistory> history = historyRepository.findByLessonId(lessonId).stream()
                 .collect(Collectors.toMap(h -> h.getParticipant().getId(), Function.identity()));
         return participantRepository.findByLessonId(lessonId).stream()
-                .map(p -> toParticipantDto(p, history.get(p.getId())))
+                .map(p -> lessonMapper.toParticipantDto(p, history.get(p.getId())))
                 .toList();
     }
 
@@ -212,7 +200,7 @@ public class LessonServiceImpl implements LessonService {
                 lesson.getStartTime(), lesson.getEndTime())) {
             throw new BusinessException("lesson.error.student_conflict");
         }
-        return toParticipantDto(participantRepository.save(new LessonParticipant(lesson, student)), null);
+        return lessonMapper.toParticipantDto(participantRepository.save(new LessonParticipant(lesson, student)), null);
     }
 
     @Override
@@ -273,7 +261,7 @@ public class LessonServiceImpl implements LessonService {
             }
         }
         lesson.markCompleted(LocalDateTime.now(), user.username());
-        return toDto(lessonRepository.save(lesson), participants.size());
+        return lessonMapper.toDto(lessonRepository.save(lesson), participants.size());
     }
 
     @Override
@@ -293,7 +281,7 @@ public class LessonServiceImpl implements LessonService {
             historyRepository.delete(h);
         }
         lesson.clearCompletion();
-        return toDto(lessonRepository.save(lesson), (int) participantRepository.countByLessonId(lessonId));
+        return lessonMapper.toDto(lessonRepository.save(lesson), (int) participantRepository.countByLessonId(lessonId));
     }
 
     /** Yönetici her derse, hoca yalnızca kendi dersine işlem yapabilir. */
@@ -307,21 +295,4 @@ public class LessonServiceImpl implements LessonService {
         return user.instructorId() != null && user.instructorId().equals(lesson.getInstructor().getId());
     }
 
-    private static LessonParticipantDto toParticipantDto(LessonParticipant p, StudentLessonHistory h) {
-        Student s = p.getStudent();
-        StudentPackage sp = h == null ? null : h.getStudentPackage();
-        return new LessonParticipantDto(p.getId(), p.getLesson().getId(), s.getId(),
-                s.getFirstName() + " " + s.getLastName(), s.getPhone(),
-                h == null ? null : h.isAttended(),
-                h != null && h.isCharged(),
-                sp == null ? null : sp.getSessionPackage().getName());
-    }
-
-    private static LessonDto toDto(Lesson l, int participantCount) {
-        Instructor i = l.getInstructor();
-        Room r = l.getRoom();
-        return new LessonDto(l.getId(), i.getId(), i.getFirstName() + " " + i.getLastName(),
-                r.getId(), r.getName(), r.getCapacity(), participantCount,
-                l.getLessonDate(), l.getStartTime(), l.getEndTime(), l.isCompleted());
-    }
 }

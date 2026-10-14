@@ -2,6 +2,7 @@ package com.paze.pilates.backend.service;
 
 import com.paze.pilates.backend.domain.AppUser;
 import com.paze.pilates.backend.domain.Instructor;
+import com.paze.pilates.backend.mapper.UserMapper;
 import com.paze.pilates.backend.repository.AppUserRepository;
 import com.paze.pilates.backend.repository.InstructorRepository;
 import com.paze.pilates.backend.security.CurrentUser;
@@ -15,11 +16,13 @@ import com.paze.pilates.dto.UserDto;
 import com.paze.pilates.dto.UserRole;
 import com.paze.pilates.service.UserService;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private static final int FULL_NAME_MAX_LENGTH = 100;
@@ -30,26 +33,13 @@ public class UserServiceImpl implements UserService {
     private final PermissionGuard guard;
     private final StaticAdminProperties staticAdmin;
     private final PasswordPolicy passwordPolicy;
-
-    public UserServiceImpl(AppUserRepository userRepository,
-                           InstructorRepository instructorRepository,
-                           PasswordEncoder passwordEncoder,
-                           PermissionGuard guard,
-                           StaticAdminProperties staticAdmin,
-                           PasswordPolicy passwordPolicy) {
-        this.userRepository = userRepository;
-        this.instructorRepository = instructorRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.guard = guard;
-        this.staticAdmin = staticAdmin;
-        this.passwordPolicy = passwordPolicy;
-    }
+    private final UserMapper mapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<UserDto> findAll() {
         guard.require(Permission.USER_MANAGE);
-        return userRepository.findAllByOrderByUsernameAsc().stream().map(UserServiceImpl::toDto).toList();
+        return userRepository.findAllByOrderByUsernameAsc().stream().map(mapper::toDto).toList();
     }
 
     @Override
@@ -87,7 +77,7 @@ public class UserServiceImpl implements UserService {
         AppUser user = new AppUser(normalized, passwordEncoder.encode(temporaryPassword), name, role);
         user.setInstructor(instructor);
         user.setMustChangePassword(true);
-        return toDto(userRepository.save(user));
+        return mapper.toDto(userRepository.save(user));
     }
 
     @Override
@@ -98,7 +88,7 @@ public class UserServiceImpl implements UserService {
         passwordPolicy.validate(temporaryPassword, null);
         user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
         user.setMustChangePassword(true);
-        return toDto(userRepository.save(user));
+        return mapper.toDto(userRepository.save(user));
     }
 
     @Override
@@ -111,7 +101,7 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("user.error.instructor_not_active");
         }
         user.setActive(true);
-        return toDto(userRepository.save(user));
+        return mapper.toDto(userRepository.save(user));
     }
 
     @Override
@@ -124,7 +114,7 @@ public class UserServiceImpl implements UserService {
         }
         ensureNotLastActiveAdmin(user);
         user.setActive(false);
-        return toDto(userRepository.save(user));
+        return mapper.toDto(userRepository.save(user));
     }
 
     @Override
@@ -147,7 +137,7 @@ public class UserServiceImpl implements UserService {
             ensureNotLastActiveAdmin(user);
         }
         user.setRole(role);
-        return toDto(userRepository.save(user));
+        return mapper.toDto(userRepository.save(user));
     }
 
     /** Aktif son yönetici pasife alınamaz veya rolü düşürülemez; sabit admin bu sayıma girmez. */
@@ -177,13 +167,5 @@ public class UserServiceImpl implements UserService {
     private AppUser find(Long userId) {
         return userRepository.findById(userId == null ? -1L : userId)
                 .orElseThrow(() -> new BusinessException("user.error.not_found"));
-    }
-
-    private static UserDto toDto(AppUser user) {
-        Instructor instructor = user.getInstructor();
-        return new UserDto(user.getId(), user.getUsername(), user.getFullName(), user.getRole(),
-                instructor == null ? null : instructor.getId(),
-                instructor == null ? null : instructor.getFirstName() + " " + instructor.getLastName(),
-                user.isActive(), user.isMustChangePassword());
     }
 }

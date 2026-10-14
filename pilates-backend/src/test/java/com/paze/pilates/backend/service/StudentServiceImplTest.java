@@ -1,7 +1,9 @@
 package com.paze.pilates.backend.service;
 
+
 import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.Student;
+import com.paze.pilates.backend.mapper.StudentMapper;
 import com.paze.pilates.backend.repository.SessionDebtRepository;
 import com.paze.pilates.backend.repository.StudentRepository;
 import com.paze.pilates.dto.BusinessException;
@@ -13,10 +15,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,7 +42,8 @@ class StudentServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new StudentServiceImpl(repository, debtRepository, TestSecurity.adminGuard());
+        service = new StudentServiceImpl(repository, debtRepository, TestSecurity.adminGuard(),
+                Mappers.getMapper(StudentMapper.class));
     }
 
     // ── findAll ──────────────────────────────────────────────────────────────

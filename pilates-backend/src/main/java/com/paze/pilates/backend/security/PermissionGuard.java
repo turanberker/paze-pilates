@@ -2,19 +2,16 @@ package com.paze.pilates.backend.security;
 
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.Permission;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /** Servis metotlarının başında çağrılır; ekranın menü gizlemesi güvenlik sayılmaz. */
 @Component
+@RequiredArgsConstructor
 public class PermissionGuard {
 
     private final SessionContext session;
     private final RolePermissionResolver resolver;
-
-    public PermissionGuard(SessionContext session, RolePermissionResolver resolver) {
-        this.session = session;
-        this.resolver = resolver;
-    }
 
     /** Giriş yapılmış ve geçici şifresini değiştirmiş kullanıcıyı döner. */
     public CurrentUser requireLoggedIn() {

@@ -4,43 +4,33 @@ import com.paze.pilates.backend.domain.SessionDebt;
 import com.paze.pilates.backend.domain.SessionPackage;
 import com.paze.pilates.backend.domain.Student;
 import com.paze.pilates.backend.domain.StudentPackage;
+import com.paze.pilates.backend.mapper.StudentPackageMapper;
 import com.paze.pilates.backend.repository.SessionDebtRepository;
 import com.paze.pilates.backend.repository.SessionPackageRepository;
 import com.paze.pilates.backend.repository.StudentPackageRepository;
 import com.paze.pilates.backend.repository.StudentRepository;
 import com.paze.pilates.backend.security.PermissionGuard;
-import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.BusinessException;
+import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.RemainingSessionFilter;
 import com.paze.pilates.dto.StudentPackageDto;
 import com.paze.pilates.service.StudentPackageService;
 import java.time.LocalDate;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class StudentPackageServiceImpl implements StudentPackageService {
-
-    private final PermissionGuard guard;
 
     private final StudentPackageRepository repository;
     private final StudentRepository studentRepository;
     private final SessionPackageRepository packageRepository;
     private final SessionDebtRepository debtRepository;
-
-    public StudentPackageServiceImpl(
-            StudentPackageRepository repository,
-            StudentRepository studentRepository,
-            SessionPackageRepository packageRepository,
-            SessionDebtRepository debtRepository,
-            PermissionGuard guard) {
-        this.guard = guard;
-        this.repository = repository;
-        this.studentRepository = studentRepository;
-        this.packageRepository = packageRepository;
-        this.debtRepository = debtRepository;
-    }
+    private final PermissionGuard guard;
+    private final StudentPackageMapper mapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -52,7 +42,7 @@ public class StudentPackageServiceImpl implements StudentPackageService {
                         f == RemainingSessionFilter.HAS_REMAINING,
                         f == RemainingSessionFilter.FINISHED)
                 .stream()
-                .map(this::toDto)
+                .map(mapper::toDto)
                 .toList();
     }
 
@@ -84,7 +74,7 @@ public class StudentPackageServiceImpl implements StudentPackageService {
         }
         sp = repository.save(sp);
         settleDebts(sp);
-        return toDto(sp);
+        return mapper.toDto(sp);
     }
 
     /** Öğrencinin borçlu seanslarını en eski dersten başlayarak yeni paketten düşer; düşülen borç satırı silinir. */
@@ -110,7 +100,7 @@ public class StudentPackageServiceImpl implements StudentPackageService {
 
         sp.setPaid(true);
         sp.setPaymentDate(paymentDate);
-        return toDto(repository.save(sp));
+        return mapper.toDto(repository.save(sp));
     }
 
     @Override
@@ -139,22 +129,5 @@ public class StudentPackageServiceImpl implements StudentPackageService {
         if (paymentDate.isAfter(LocalDate.now())) {
             throw new BusinessException("student_package.error.payment_date_future");
         }
-    }
-
-    private StudentPackageDto toDto(StudentPackage sp) {
-        Student s = sp.getStudent();
-        SessionPackage p = sp.getSessionPackage();
-        return new StudentPackageDto(
-                sp.getId(),
-                s.getId(),
-                s.getFirstName() + " " + s.getLastName(),
-                p.getId(),
-                p.getName(),
-                sp.getTotalSessions(),
-                sp.getUsedSessions(),
-                sp.getRemainingSessions(),
-                sp.isPaid(),
-                sp.getPaymentDate(),
-                sp.getAssignedDate());
     }
 }
