@@ -16,6 +16,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
@@ -51,6 +52,7 @@ public class CalendarPanel extends JPanel {
     static final int SLOT_MINUTES = 30;
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final Color PAST_BG = new Color(229, 231, 235);
     private static final Color LESSON_BG = new Color(191, 219, 254);
 
     private final LessonService lessonService;
@@ -105,7 +107,7 @@ public class CalendarPanel extends JPanel {
         nav.add(weekLabel);
         top.add(nav, BorderLayout.WEST);
         if (canOpenLessons()) {
-            JLabel hint = new JLabel(text("calendar.hint"));
+            JLabel hint = new JLabel(text("calendar.hint") + " " + text("calendar.past_hint"));
             hint.setHorizontalAlignment(SwingConstants.RIGHT);
             top.add(hint, BorderLayout.EAST);
         }
@@ -171,7 +173,7 @@ public class CalendarPanel extends JPanel {
         }
         table.changeSelection(row, col, false, false);
         JPopupMenu menu = new JPopupMenu();
-        boolean canOpen = canOpenLessons();
+        boolean canOpen = canOpenLessons() && !isPast(row, col);
         if (canOpen) {
             JMenuItem open = new JMenuItem(text("calendar.menu.open_lesson"));
             open.addActionListener(a -> onOpenLesson(row, col));
@@ -209,6 +211,12 @@ public class CalendarPanel extends JPanel {
     /** Yönetici her derse, hoca yalnızca kendi dersine işlem yapar; asıl kontrol serviste. */
     private boolean canOpenLessons() {
         return authService.getCurrentUser().map(AppUserDto::canOpenLessons).orElse(false);
+    }
+
+    /** Dilimin başlangıcı geçmişteyse o hücreye ders açılamaz (asıl kontrol serviste). */
+    private boolean isPast(int row, int col) {
+        return LocalDateTime.of(weekStart.plusDays(col - 1L), WeekTableModel.slotStart(row))
+                .isBefore(LocalDateTime.now());
     }
 
     private boolean canManageLesson(LessonDto lesson) {
@@ -316,7 +324,7 @@ public class CalendarPanel extends JPanel {
         }
     }
 
-    private static final class SlotRenderer extends DefaultTableCellRenderer {
+    private final class SlotRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable t, Object value, boolean selected,
                                                        boolean focus, int row, int col) {
@@ -327,9 +335,12 @@ public class CalendarPanel extends JPanel {
             } else if (value != null) {
                 setBackground(LESSON_BG);
                 setForeground(Color.BLACK);
+            } else if (isPast(row, col)) {
+                setBackground(PAST_BG);
             } else {
                 setBackground(t.getBackground());
             }
+            setToolTipText(col > 0 && value == null && isPast(row, col) ? text("calendar.past_hint") : null);
             return this;
         }
     }
