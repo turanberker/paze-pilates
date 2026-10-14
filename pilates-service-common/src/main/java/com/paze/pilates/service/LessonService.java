@@ -1,6 +1,7 @@
 package com.paze.pilates.service;
 
 import com.paze.pilates.dto.LessonDto;
+import com.paze.pilates.dto.LessonParticipantDto;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -18,4 +19,16 @@ public interface LessonService {
      * @throws com.paze.pilates.dto.BusinessException doğrulama veya çakışma hatasında
      */
     LessonDto openLesson(Long instructorId, Long roomId, LocalDate date, LocalTime startTime, LocalTime endTime);
+
+    /** Dersin katılımcılarını soyadı / adı sırasıyla döner. */
+    List<LessonParticipantDto> getParticipants(Long lessonId);
+
+    /**
+     * Aktif öğrenciyi derse ekler. Oda kapasitesi dolu olamaz, öğrenci derste zaten ekli
+     * olamaz, aynı saat aralığında başka bir derste olamaz ve bitmiş derse ekleme yapılamaz.
+     * Paket bakiyesi bu aşamada düşülmez.
+     *
+     * @throws com.paze.pilates.dto.BusinessException doğrulama veya kural hatasında
+     */
+    LessonParticipantDto addParticipant(Long lessonId, Long studentId);
 }

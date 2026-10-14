@@ -6,14 +6,16 @@ import java.time.LocalTime;
 /**
  * Takvimde açılmış ders.
  *
- * @param id             ders kimliği
- * @param instructorId   hoca kimliği
- * @param instructorName hoca ad soyad
- * @param roomId         oda kimliği
- * @param roomName       oda adı
- * @param date           ders günü
- * @param startTime      başlangıç saati
- * @param endTime        bitiş saati
+ * @param id               ders kimliği
+ * @param instructorId     hoca kimliği
+ * @param instructorName   hoca ad soyad
+ * @param roomId           oda kimliği
+ * @param roomName         oda adı
+ * @param capacity         oda kapasitesi
+ * @param participantCount derse eklenmiş öğrenci sayısı
+ * @param date             ders günü
+ * @param startTime        başlangıç saati
+ * @param endTime          bitiş saati
  */
 public record LessonDto(
         Long id,
@@ -21,6 +23,8 @@ public record LessonDto(
         String instructorName,
         Long roomId,
         String roomName,
+        int capacity,
+        int participantCount,
         LocalDate date,
         LocalTime startTime,
         LocalTime endTime

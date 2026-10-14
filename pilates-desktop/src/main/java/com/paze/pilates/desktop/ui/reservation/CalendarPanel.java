@@ -24,7 +24,10 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
@@ -50,6 +53,8 @@ public class CalendarPanel extends JPanel {
     private final LessonService lessonService;
     private final NotificationBar notificationBar;
     private final ObjectProvider<LessonFormDialog> lessonDialogProvider;
+    private final ObjectProvider<LessonParticipantsDialog> participantsDialogProvider;
+    private final ObjectProvider<LessonStudentAddDialog> studentAddDialogProvider;
     private final MessageSource messages;
 
     private LocalDate weekStart = LocalDate.now().with(DayOfWeek.MONDAY);
@@ -61,10 +66,14 @@ public class CalendarPanel extends JPanel {
             LessonService lessonService,
             NotificationBar notificationBar,
             ObjectProvider<LessonFormDialog> lessonDialogProvider,
+            ObjectProvider<LessonParticipantsDialog> participantsDialogProvider,
+            ObjectProvider<LessonStudentAddDialog> studentAddDialogProvider,
             MessageSource messages) {
         this.lessonService = lessonService;
         this.notificationBar = notificationBar;
         this.lessonDialogProvider = lessonDialogProvider;
+        this.participantsDialogProvider = participantsDialogProvider;
+        this.studentAddDialogProvider = studentAddDialogProvider;
         this.messages = messages;
         initComponents();
         loadWeek();
@@ -103,10 +112,11 @@ public class CalendarPanel extends JPanel {
         table.setDefaultRenderer(Object.class, new SlotRenderer());
         table.getColumnModel().getColumn(0).setMaxWidth(70);
         table.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
-                    onSlotActivated(table.rowAtPoint(e.getPoint()), table.columnAtPoint(e.getPoint()));
-                }
+            @Override public void mousePressed(MouseEvent e) {
+                maybeShowMenu(e);
+            }
+            @Override public void mouseReleased(MouseEvent e) {
+                maybeShowMenu(e);
             }
         });
         add(new JScrollPane(table), BorderLayout.CENTER);
@@ -141,14 +151,57 @@ public class CalendarPanel extends JPanel {
         }.execute();
     }
 
-    private void onSlotActivated(int row, int col) {
+    /** Sağ tık: hücreyi seçer; hücredeki derslere göre menü açar (boş hücrede "Ders Aç"). */
+    private void maybeShowMenu(MouseEvent e) {
+        if (!e.isPopupTrigger()) {
+            return;
+        }
+        int row = table.rowAtPoint(e.getPoint());
+        int col = table.columnAtPoint(e.getPoint());
         if (row < 0 || col < 1) {
             return;
         }
+        table.changeSelection(row, col, false, false);
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem open = new JMenuItem(text("calendar.menu.open_lesson"));
+        open.addActionListener(a -> onOpenLesson(row, col));
+        menu.add(open);
+
+        List<LessonDto> lessons = tableModel.lessonsAt(row, col);
+        for (LessonDto lesson : lessons) {
+            menu.addSeparator();
+            JMenu sub = new JMenu(messages.getMessage("calendar.menu.lesson",
+                    new Object[] {lesson.instructorName(), lesson.roomName(),
+                            TIME_FMT.format(lesson.startTime()) + "-" + TIME_FMT.format(lesson.endTime())},
+                    Locale.getDefault()));
+            JMenuItem show = new JMenuItem(text("calendar.menu.show_participants"));
+            show.addActionListener(a -> participantsDialogProvider.getObject()
+                    .showDialog(parentFrame(), lesson));
+            JMenuItem add = new JMenuItem(text("calendar.menu.add_student"));
+            add.addActionListener(a -> onAddStudent(lesson));
+            sub.add(show);
+            sub.add(add);
+            menu.add(sub);
+        }
+        menu.show(table, e.getX(), e.getY());
+    }
+
+    private void onAddStudent(LessonDto lesson) {
+        if (studentAddDialogProvider.getObject().showDialog(parentFrame(), lesson) != null) {
+            notificationBar.showSuccess(text("calendar.student.added"));
+            loadWeek();
+        }
+    }
+
+    private Frame parentFrame() {
+        return (Frame) SwingUtilities.getWindowAncestor(this);
+    }
+
+    private void onOpenLesson(int row, int col) {
         LocalDate date = weekStart.plusDays(col - 1L);
         LocalTime start = WeekTableModel.slotStart(row);
         LessonDto created = lessonDialogProvider.getObject()
-                .showDialog((Frame) SwingUtilities.getWindowAncestor(this), date, start);
+                .showDialog(parentFrame(), date, start);
         if (created != null) {
             notificationBar.showSuccess(text("calendar.lesson.created"));
             if (!created.date().isBefore(weekStart) && !created.date().isAfter(weekStart.plusDays(6))) {
@@ -211,12 +264,22 @@ public class CalendarPanel extends JPanel {
                 if (l.date().equals(date) && l.startTime().isBefore(slotEnd) && l.endTime().isAfter(slot)) {
                     boolean startsHere = !l.startTime().isBefore(slot);
                     labels.add(startsHere || row == 0
-                            ? messages.getMessage("calendar.lesson.cell",
-                                    new Object[] {l.instructorName(), l.roomName()}, Locale.getDefault())
+                            ? messages.getMessage("calendar.lesson.cell_count",
+                                    new Object[] {l.instructorName(), l.roomName(), l.participantCount(), l.capacity()}, Locale.getDefault())
                             : "");
                 }
             }
             return labels.isEmpty() ? null : String.join(" | ", labels);
+        }
+
+        /** Hücredeki (dilimle kesişen) dersler. */
+        List<LessonDto> lessonsAt(int row, int col) {
+            LocalDate date = start.plusDays(col - 1L);
+            LocalTime slot = slotStart(row);
+            LocalTime slotEnd = slot.plusMinutes(SLOT_MINUTES);
+            return lessons.stream()
+                    .filter(l -> l.date().equals(date) && l.startTime().isBefore(slotEnd) && l.endTime().isAfter(slot))
+                    .toList();
         }
 
         @Override public boolean isCellEditable(int row, int col) {

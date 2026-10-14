@@ -10,12 +10,17 @@ import static org.mockito.Mockito.when;
 
 import com.paze.pilates.backend.domain.Instructor;
 import com.paze.pilates.backend.domain.Lesson;
+import com.paze.pilates.backend.domain.LessonParticipant;
 import com.paze.pilates.backend.domain.Room;
+import com.paze.pilates.backend.domain.Student;
+import com.paze.pilates.backend.repository.LessonParticipantRepository;
+import com.paze.pilates.backend.repository.StudentRepository;
 import com.paze.pilates.backend.repository.InstructorRepository;
 import com.paze.pilates.backend.repository.LessonRepository;
 import com.paze.pilates.backend.repository.RoomRepository;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.LessonDto;
+import com.paze.pilates.dto.LessonParticipantDto;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Optional;
@@ -39,6 +44,10 @@ class LessonServiceImplTest {
     private InstructorRepository instructorRepository;
     @Mock
     private RoomRepository roomRepository;
+    @Mock
+    private LessonParticipantRepository participantRepository;
+    @Mock
+    private StudentRepository studentRepository;
 
     private LessonServiceImpl service;
     private Instructor instructor;
@@ -46,7 +55,8 @@ class LessonServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new LessonServiceImpl(lessonRepository, instructorRepository, roomRepository);
+        service = new LessonServiceImpl(lessonRepository, instructorRepository, roomRepository,
+                participantRepository, studentRepository);
         instructor = new Instructor("Ayşe", "Yılmaz");
         room = new Room("Reformer Salonu", 6);
     }
@@ -157,5 +167,78 @@ class LessonServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("lesson.error.range_invalid");
         verify(lessonRepository, never()).findBetween(eq(DATE), any());
+    }
+
+    private Lesson futureLesson() {
+        return new Lesson(instructor, room, DATE, START, END);
+    }
+
+    private void stubParticipantBase(Student student) {
+        when(lessonRepository.findById(5L)).thenReturn(Optional.of(futureLesson()));
+        when(studentRepository.findById(7L)).thenReturn(Optional.of(student));
+    }
+
+    @Test
+    @DisplayName("addParticipant: kapasite doluysa reddedilir")
+    void addParticipant_full() {
+        stubParticipantBase(new Student("Ali", "Kaya"));
+        when(participantRepository.countByLessonId(5L)).thenReturn(6L);
+
+        assertThatThrownBy(() -> service.addParticipant(5L, 7L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("lesson.error.capacity_full");
+        verify(participantRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("addParticipant: öğrenci derste zaten varsa reddedilir")
+    void addParticipant_duplicate() {
+        stubParticipantBase(new Student("Ali", "Kaya"));
+        when(participantRepository.existsByLessonIdAndStudentId(5L, 7L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.addParticipant(5L, 7L))
+                .hasMessage("lesson.error.participant_duplicate");
+    }
+
+    @Test
+    @DisplayName("addParticipant: öğrenci aynı saatte başka derste ise reddedilir")
+    void addParticipant_studentConflict() {
+        stubParticipantBase(new Student("Ali", "Kaya"));
+        when(participantRepository.existsStudentOverlap(7L, DATE, START, END)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.addParticipant(5L, 7L))
+                .hasMessage("lesson.error.student_conflict");
+    }
+
+    @Test
+    @DisplayName("addParticipant: pasif öğrenci eklenemez")
+    void addParticipant_inactiveStudent() {
+        Student passive = new Student("Ali", "Kaya");
+        passive.setActive(false);
+        stubParticipantBase(passive);
+
+        assertThatThrownBy(() -> service.addParticipant(5L, 7L))
+                .hasMessage("lesson.error.student_not_active");
+    }
+
+    @Test
+    @DisplayName("addParticipant: bitmiş derse öğrenci eklenemez")
+    void addParticipant_finishedLesson() {
+        Lesson past = new Lesson(instructor, room, LocalDate.now().minusDays(1), START, END);
+        when(lessonRepository.findById(5L)).thenReturn(Optional.of(past));
+
+        assertThatThrownBy(() -> service.addParticipant(5L, 7L))
+                .hasMessage("lesson.error.already_finished");
+    }
+
+    @Test
+    @DisplayName("addParticipant: uygun öğrenci derse eklenir")
+    void addParticipant_ok() {
+        stubParticipantBase(new Student("Ali", "Kaya"));
+        when(participantRepository.save(any(LessonParticipant.class))).thenAnswer(i -> i.getArgument(0));
+
+        LessonParticipantDto result = service.addParticipant(5L, 7L);
+
+        assertThat(result.studentName()).isEqualTo("Ali Kaya");
     }
 }

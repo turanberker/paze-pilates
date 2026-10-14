@@ -21,7 +21,8 @@ _Şu an aktif iş yok._
   - ✅ Ders açma: hoca + oda + gün + saat aralığı, haftalık takvimden çift tıklayarak
   - ✅ Çakışma kontrolü (oda ve hoca için saat aralığı) servis katmanında
   - ✅ Haftalık takvim görünümü
-  - ⬜ Ders düzenleme/iptal, kapasite, ders tipi, tekrarlayan dersler
+  - ✅ Takvimde sağ tık menüsü; derse öğrenci ekleme ve katılımcıları gösterme (kapasite = oda kapasitesi)
+  - ⬜ Ders düzenleme/iptal, katılımcı çıkarma, paket bakiyesi düşümü, ders tipi, tekrarlayan dersler
 - ⬜ **Öğrenci yönetimi**
   - Öğrenci kaydı (ad, telefon, e-posta, notlar)
   - Rezervasyon ve iptal

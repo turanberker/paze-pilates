@@ -10,5 +10,6 @@
     <include file="v1.0.0/003_session_package.xml" relativeToChangelogFile="true"/>
     <include file="v1.0.0/004_student_package.xml" relativeToChangelogFile="true"/>
     <include file="v1.0.0/005_lesson.xml" relativeToChangelogFile="true"/>
+    <include file="v1.0.0/006_lesson_participant.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

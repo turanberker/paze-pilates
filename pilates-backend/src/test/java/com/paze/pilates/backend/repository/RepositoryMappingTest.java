@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.paze.pilates.backend.domain.AppUser;
 import com.paze.pilates.backend.domain.Instructor;
 import com.paze.pilates.backend.domain.Lesson;
+import com.paze.pilates.backend.domain.LessonParticipant;
 import com.paze.pilates.backend.domain.Room;
 import com.paze.pilates.backend.domain.SessionPackage;
 import com.paze.pilates.backend.domain.Student;
@@ -50,6 +51,9 @@ class RepositoryMappingTest {
 
     @Autowired
     private LessonRepository lessonRepository;
+
+    @Autowired
+    private LessonParticipantRepository participantRepository;
 
     @Test
     void savesUserWithTimestampsAndRejectsDuplicateUsername() {
@@ -167,5 +171,30 @@ class RepositoryMappingTest {
         // hafta sorgusu
         assertThat(lessonRepository.findBetween(day, day.plusDays(6))).hasSize(1);
         assertThat(lessonRepository.findBetween(day.plusDays(1), day.plusDays(6))).isEmpty();
+    }
+
+    @Test
+    void storesParticipantsAndRejectsDuplicates() {
+        Room room = roomRepository.save(new Room("Reformer", 6));
+        Instructor ayse = instructorRepository.save(new Instructor("Ayşe", "Yılmaz"));
+        Student ali = studentRepository.save(new Student("Ali", "Kaya"));
+        Student zeynep = studentRepository.save(new Student("Zeynep", "Kara"));
+        LocalDate day = LocalDate.of(2026, 11, 2);
+        Lesson lesson = lessonRepository.save(new Lesson(ayse, room, day, LocalTime.of(10, 0), LocalTime.of(11, 0)));
+        participantRepository.save(new LessonParticipant(lesson, zeynep));
+        participantRepository.saveAndFlush(new LessonParticipant(lesson, ali));
+        entityManager.clear();
+
+        assertThat(participantRepository.findByLessonId(lesson.getId()))
+                .extracting(p -> p.getStudent().getFirstName()).containsExactly("Zeynep", "Ali");
+        assertThat(participantRepository.countByLessonId(lesson.getId())).isEqualTo(2);
+        assertThat(participantRepository.existsStudentOverlap(ali.getId(), day, LocalTime.of(10, 30), LocalTime.of(11, 30))).isTrue();
+        assertThat(participantRepository.existsStudentOverlap(ali.getId(), day, LocalTime.of(11, 0), LocalTime.of(12, 0))).isFalse();
+        assertThat(participantRepository.countByLessonIds(java.util.List.of(lesson.getId())))
+                .hasSize(1).first().satisfies(r -> assertThat(r[1]).isEqualTo(2L));
+        assertThatThrownBy(() -> participantRepository.saveAndFlush(
+                new LessonParticipant(lessonRepository.findById(lesson.getId()).orElseThrow(),
+                        studentRepository.findById(ali.getId()).orElseThrow())))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 }
