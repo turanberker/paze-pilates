@@ -1,5 +1,6 @@
 package com.paze.pilates.backend.service;
 
+import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.Student;
 import com.paze.pilates.backend.repository.StudentRepository;
 import com.paze.pilates.dto.BusinessException;
@@ -36,7 +37,7 @@ class StudentServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new StudentServiceImpl(repository);
+        service = new StudentServiceImpl(repository, TestSecurity.adminGuard());
     }
 
     // ── findAll ──────────────────────────────────────────────────────────────

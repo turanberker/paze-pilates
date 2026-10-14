@@ -3,6 +3,8 @@ package com.paze.pilates.desktop.ui.reservation;
 import com.paze.pilates.desktop.ui.shared.NotificationBar;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.LessonDto;
+import com.paze.pilates.dto.AppUserDto;
+import com.paze.pilates.service.AuthService;
 import com.paze.pilates.service.LessonService;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -14,6 +16,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
@@ -40,6 +43,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.MessageSource;
 
 /** Haftalık takvim; boş saate çift tıklayarak ders açılır. */
+@org.springframework.context.annotation.Scope("prototype")
 @org.springframework.stereotype.Component
 public class CalendarPanel extends JPanel {
 
@@ -48,9 +52,11 @@ public class CalendarPanel extends JPanel {
     static final int SLOT_MINUTES = 30;
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final Color PAST_BG = new Color(229, 231, 235);
     private static final Color LESSON_BG = new Color(191, 219, 254);
 
     private final LessonService lessonService;
+    private final AuthService authService;
     private final NotificationBar notificationBar;
     private final ObjectProvider<LessonFormDialog> lessonDialogProvider;
     private final ObjectProvider<LessonParticipantsDialog> participantsDialogProvider;
@@ -64,12 +70,14 @@ public class CalendarPanel extends JPanel {
 
     public CalendarPanel(
             LessonService lessonService,
+            AuthService authService,
             NotificationBar notificationBar,
             ObjectProvider<LessonFormDialog> lessonDialogProvider,
             ObjectProvider<LessonParticipantsDialog> participantsDialogProvider,
             ObjectProvider<LessonStudentAddDialog> studentAddDialogProvider,
             MessageSource messages) {
         this.lessonService = lessonService;
+        this.authService = authService;
         this.notificationBar = notificationBar;
         this.lessonDialogProvider = lessonDialogProvider;
         this.participantsDialogProvider = participantsDialogProvider;
@@ -98,9 +106,11 @@ public class CalendarPanel extends JPanel {
         nav.add(next);
         nav.add(weekLabel);
         top.add(nav, BorderLayout.WEST);
-        JLabel hint = new JLabel(text("calendar.hint"));
-        hint.setHorizontalAlignment(SwingConstants.RIGHT);
-        top.add(hint, BorderLayout.EAST);
+        if (canOpenLessons()) {
+            JLabel hint = new JLabel(text("calendar.hint") + " " + text("calendar.past_hint"));
+            hint.setHorizontalAlignment(SwingConstants.RIGHT);
+            top.add(hint, BorderLayout.EAST);
+        }
         add(top, BorderLayout.NORTH);
 
         tableModel = new WeekTableModel();
@@ -163,13 +173,18 @@ public class CalendarPanel extends JPanel {
         }
         table.changeSelection(row, col, false, false);
         JPopupMenu menu = new JPopupMenu();
-        JMenuItem open = new JMenuItem(text("calendar.menu.open_lesson"));
-        open.addActionListener(a -> onOpenLesson(row, col));
-        menu.add(open);
+        boolean canOpen = canOpenLessons() && !isPast(row, col);
+        if (canOpen) {
+            JMenuItem open = new JMenuItem(text("calendar.menu.open_lesson"));
+            open.addActionListener(a -> onOpenLesson(row, col));
+            menu.add(open);
+        }
 
         List<LessonDto> lessons = tableModel.lessonsAt(row, col);
         for (LessonDto lesson : lessons) {
-            menu.addSeparator();
+            if (menu.getComponentCount() > 0) {
+                menu.addSeparator();
+            }
             JMenu sub = new JMenu(messages.getMessage("calendar.menu.lesson",
                     new Object[] {lesson.instructorName(), lesson.roomName(),
                             TIME_FMT.format(lesson.startTime()) + "-" + TIME_FMT.format(lesson.endTime())},
@@ -180,13 +195,32 @@ public class CalendarPanel extends JPanel {
                     loadWeek();
                 }
             });
-            JMenuItem add = new JMenuItem(text("calendar.menu.add_student"));
-            add.addActionListener(a -> onAddStudent(lesson));
             sub.add(show);
-            sub.add(add);
+            if (canManageLesson(lesson)) {
+                JMenuItem add = new JMenuItem(text("calendar.menu.add_student"));
+                add.addActionListener(a -> onAddStudent(lesson));
+                sub.add(add);
+            }
             menu.add(sub);
         }
-        menu.show(table, e.getX(), e.getY());
+        if (menu.getComponentCount() > 0) {
+            menu.show(table, e.getX(), e.getY());
+        }
+    }
+
+    /** Yönetici her derse, hoca yalnızca kendi dersine işlem yapar; asıl kontrol serviste. */
+    private boolean canOpenLessons() {
+        return authService.getCurrentUser().map(AppUserDto::canOpenLessons).orElse(false);
+    }
+
+    /** Dilimin başlangıcı geçmişteyse o hücreye ders açılamaz (asıl kontrol serviste). */
+    private boolean isPast(int row, int col) {
+        return LocalDateTime.of(weekStart.plusDays(col - 1L), WeekTableModel.slotStart(row))
+                .isBefore(LocalDateTime.now());
+    }
+
+    private boolean canManageLesson(LessonDto lesson) {
+        return authService.getCurrentUser().map(u -> u.canManageLessonOf(lesson.instructorId())).orElse(false);
     }
 
     private void onAddStudent(LessonDto lesson) {
@@ -290,7 +324,7 @@ public class CalendarPanel extends JPanel {
         }
     }
 
-    private static final class SlotRenderer extends DefaultTableCellRenderer {
+    private final class SlotRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable t, Object value, boolean selected,
                                                        boolean focus, int row, int col) {
@@ -301,9 +335,12 @@ public class CalendarPanel extends JPanel {
             } else if (value != null) {
                 setBackground(LESSON_BG);
                 setForeground(Color.BLACK);
+            } else if (isPast(row, col)) {
+                setBackground(PAST_BG);
             } else {
                 setBackground(t.getBackground());
             }
+            setToolTipText(col > 0 && value == null && isPast(row, col) ? text("calendar.past_hint") : null);
             return this;
         }
     }

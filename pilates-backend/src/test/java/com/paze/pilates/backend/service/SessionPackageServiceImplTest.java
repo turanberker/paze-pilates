@@ -1,5 +1,6 @@
 package com.paze.pilates.backend.service;
 
+import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.SessionPackage;
 import com.paze.pilates.backend.repository.SessionPackageRepository;
 import com.paze.pilates.dto.BusinessException;
@@ -34,7 +35,7 @@ class SessionPackageServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new SessionPackageServiceImpl(repository);
+        service = new SessionPackageServiceImpl(repository, TestSecurity.adminGuard());
     }
 
     @Test

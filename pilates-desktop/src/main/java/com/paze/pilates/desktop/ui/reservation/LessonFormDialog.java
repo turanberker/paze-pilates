@@ -4,9 +4,7 @@ import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.InstructorDto;
 import com.paze.pilates.dto.LessonDto;
 import com.paze.pilates.dto.RoomDto;
-import com.paze.pilates.service.InstructorService;
 import com.paze.pilates.service.LessonService;
-import com.paze.pilates.service.StudioService;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -47,8 +45,6 @@ public class LessonFormDialog extends JDialog {
     private static final int DEFAULT_DURATION_MINUTES = 60;
 
     private final LessonService lessonService;
-    private final InstructorService instructorService;
-    private final StudioService studioService;
     private final MessageSource messages;
 
     private JComboBox<InstructorDto> instructorCombo;
@@ -63,12 +59,8 @@ public class LessonFormDialog extends JDialog {
 
     public LessonFormDialog(
             LessonService lessonService,
-            InstructorService instructorService,
-            StudioService studioService,
             MessageSource messages) {
         this.lessonService = lessonService;
-        this.instructorService = instructorService;
-        this.studioService = studioService;
         this.messages = messages;
     }
 
@@ -174,7 +166,7 @@ public class LessonFormDialog extends JDialog {
     private void loadOptions() {
         new SwingWorker<Options, Void>() {
             @Override protected Options doInBackground() {
-                return new Options(instructorService.getInstructors(), studioService.getRooms());
+                return new Options(lessonService.findInstructorsForLessons(), lessonService.findRoomsForLessons());
             }
             @Override protected void done() {
                 try {

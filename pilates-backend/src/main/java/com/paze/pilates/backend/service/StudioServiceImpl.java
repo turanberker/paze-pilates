@@ -4,6 +4,8 @@ import com.paze.pilates.backend.domain.Room;
 import com.paze.pilates.backend.domain.Studio;
 import com.paze.pilates.backend.repository.RoomRepository;
 import com.paze.pilates.backend.repository.StudioRepository;
+import com.paze.pilates.backend.security.PermissionGuard;
+import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.RoomDto;
 import com.paze.pilates.dto.StudioDto;
@@ -16,10 +18,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class StudioServiceImpl implements StudioService {
 
+    private final PermissionGuard guard;
+
     private final StudioRepository studioRepository;
     private final RoomRepository roomRepository;
 
-    public StudioServiceImpl(StudioRepository studioRepository, RoomRepository roomRepository) {
+    public StudioServiceImpl(StudioRepository studioRepository, RoomRepository roomRepository, PermissionGuard guard) {
+        this.guard = guard;
         this.studioRepository = studioRepository;
         this.roomRepository = roomRepository;
     }
@@ -27,6 +32,7 @@ public class StudioServiceImpl implements StudioService {
     @Override
     @Transactional(readOnly = true)
     public Optional<StudioDto> getStudio() {
+        guard.require(Permission.STUDIO_MANAGE);
         return studioRepository.findFirstByOrderByIdAsc()
                 .map(s -> new StudioDto(s.getId(), s.getName()));
     }
@@ -34,6 +40,7 @@ public class StudioServiceImpl implements StudioService {
     @Override
     @Transactional
     public StudioDto saveStudio(StudioDto dto) {
+        guard.require(Permission.STUDIO_MANAGE);
         if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException("studio.error.name_required");
         }
@@ -48,6 +55,7 @@ public class StudioServiceImpl implements StudioService {
     @Override
     @Transactional(readOnly = true)
     public List<RoomDto> getRooms() {
+        guard.require(Permission.STUDIO_MANAGE);
         return roomRepository.findByActiveTrueOrderByNameAsc()
                 .stream()
                 .map(r -> new RoomDto(r.getId(), r.getName(), r.getCapacity()))
@@ -57,6 +65,7 @@ public class StudioServiceImpl implements StudioService {
     @Override
     @Transactional
     public RoomDto saveRoom(RoomDto dto) {
+        guard.require(Permission.STUDIO_MANAGE);
         if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException("room.error.name_required");
         }
@@ -86,6 +95,7 @@ public class StudioServiceImpl implements StudioService {
     @Override
     @Transactional
     public void deleteRoom(Long id) {
+        guard.require(Permission.STUDIO_MANAGE);
         roomRepository.findById(id).ifPresent(room -> {
             room.setActive(false);
             roomRepository.save(room);

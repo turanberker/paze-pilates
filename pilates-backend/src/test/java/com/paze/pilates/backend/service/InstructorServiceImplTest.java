@@ -7,15 +7,19 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.Instructor;
+import com.paze.pilates.backend.domain.AppUser;
+import com.paze.pilates.backend.repository.AppUserRepository;
 import com.paze.pilates.backend.repository.InstructorRepository;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.InstructorDto;
+import com.paze.pilates.dto.UserRole;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -25,8 +29,15 @@ class InstructorServiceImplTest {
     @Mock
     private InstructorRepository instructorRepository;
 
-    @InjectMocks
+    @Mock
+    private AppUserRepository userRepository;
+
     private InstructorServiceImpl service;
+
+    @BeforeEach
+    void setUp() {
+        service = new InstructorServiceImpl(instructorRepository, userRepository, TestSecurity.adminGuard());
+    }
 
     @Test
     void getInstructors_mapsActiveInstructorsToDtos() {
@@ -99,5 +110,29 @@ class InstructorServiceImplTest {
 
         assertThat(existing.isActive()).isFalse();
         verify(instructorRepository).save(existing);
+    }
+
+    @Test
+    void deleteInstructor_deactivatesLinkedUser() {
+        Instructor existing = new Instructor("Ayşe", "Yılmaz");
+        AppUser linked = new AppUser("ayse", "hash", "Ayşe Yılmaz", UserRole.INSTRUCTOR);
+        when(instructorRepository.findById(5L)).thenReturn(Optional.of(existing));
+        when(userRepository.findByInstructorId(5L)).thenReturn(Optional.of(linked));
+
+        service.deleteInstructor(5L);
+
+        assertThat(linked.isActive()).isFalse();
+        verify(userRepository).save(linked);
+    }
+
+    @Test
+    void getInstructors_instructorRoleIsForbidden() {
+        InstructorServiceImpl restricted = new InstructorServiceImpl(instructorRepository, userRepository,
+                TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)));
+
+        assertThatThrownBy(restricted::getInstructors)
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("auth.error.forbidden");
+        verify(instructorRepository, never()).findByActiveTrueOrderByFirstNameAscLastNameAsc();
     }
 }

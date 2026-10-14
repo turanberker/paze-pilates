@@ -2,6 +2,8 @@ package com.paze.pilates.backend.service;
 
 import com.paze.pilates.backend.domain.Student;
 import com.paze.pilates.backend.repository.StudentRepository;
+import com.paze.pilates.backend.security.PermissionGuard;
+import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.StudentDto;
 import com.paze.pilates.service.StudentService;
@@ -12,15 +14,19 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class StudentServiceImpl implements StudentService {
 
+    private final PermissionGuard guard;
+
     private final StudentRepository studentRepository;
 
-    public StudentServiceImpl(StudentRepository studentRepository) {
+    public StudentServiceImpl(StudentRepository studentRepository, PermissionGuard guard) {
+        this.guard = guard;
         this.studentRepository = studentRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<StudentDto> findAll() {
+        guard.require(Permission.STUDENT_MANAGE);
         return studentRepository.findByActiveTrueOrderByLastNameAscFirstNameAsc()
                 .stream()
                 .map(this::toDto)
@@ -30,6 +36,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional(readOnly = true)
     public List<StudentDto> search(String term) {
+        guard.require(Permission.STUDENT_MANAGE);
         if (term == null || term.isBlank()) {
             return findAll();
         }
@@ -42,6 +49,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional
     public StudentDto save(StudentDto dto) {
+        guard.require(Permission.STUDENT_MANAGE);
         validate(dto);
 
         if (dto.id() == null) {
@@ -70,6 +78,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional
     public void deactivate(Long id) {
+        guard.require(Permission.STUDENT_MANAGE);
         studentRepository.findById(id).ifPresent(s -> {
             s.setActive(false);
             studentRepository.save(s);

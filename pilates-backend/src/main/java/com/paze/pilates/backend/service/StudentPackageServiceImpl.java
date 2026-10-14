@@ -6,6 +6,8 @@ import com.paze.pilates.backend.domain.StudentPackage;
 import com.paze.pilates.backend.repository.SessionPackageRepository;
 import com.paze.pilates.backend.repository.StudentPackageRepository;
 import com.paze.pilates.backend.repository.StudentRepository;
+import com.paze.pilates.backend.security.PermissionGuard;
+import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.RemainingSessionFilter;
 import com.paze.pilates.dto.StudentPackageDto;
@@ -18,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class StudentPackageServiceImpl implements StudentPackageService {
 
+    private final PermissionGuard guard;
+
     private final StudentPackageRepository repository;
     private final StudentRepository studentRepository;
     private final SessionPackageRepository packageRepository;
@@ -25,7 +29,9 @@ public class StudentPackageServiceImpl implements StudentPackageService {
     public StudentPackageServiceImpl(
             StudentPackageRepository repository,
             StudentRepository studentRepository,
-            SessionPackageRepository packageRepository) {
+            SessionPackageRepository packageRepository,
+            PermissionGuard guard) {
+        this.guard = guard;
         this.repository = repository;
         this.studentRepository = studentRepository;
         this.packageRepository = packageRepository;
@@ -34,6 +40,7 @@ public class StudentPackageServiceImpl implements StudentPackageService {
     @Override
     @Transactional(readOnly = true)
     public List<StudentPackageDto> search(String studentName, RemainingSessionFilter filter) {
+        guard.require(Permission.PAYMENT_MANAGE);
         String term = studentName == null ? "" : studentName.trim();
         RemainingSessionFilter f = filter == null ? RemainingSessionFilter.ALL : filter;
         return repository.search(term,
@@ -47,6 +54,7 @@ public class StudentPackageServiceImpl implements StudentPackageService {
     @Override
     @Transactional
     public StudentPackageDto assign(Long studentId, Long packageId, boolean paid, LocalDate paymentDate) {
+        guard.require(Permission.PAYMENT_MANAGE);
         if (studentId == null) {
             throw new BusinessException("student_package.error.student_required");
         }
@@ -75,6 +83,7 @@ public class StudentPackageServiceImpl implements StudentPackageService {
     @Override
     @Transactional
     public StudentPackageDto completePayment(Long studentPackageId, LocalDate paymentDate) {
+        guard.require(Permission.PAYMENT_MANAGE);
         StudentPackage sp = findOrThrow(studentPackageId);
         if (sp.isPaid()) {
             throw new BusinessException("student_package.error.already_paid");
@@ -89,6 +98,7 @@ public class StudentPackageServiceImpl implements StudentPackageService {
     @Override
     @Transactional
     public void cancel(Long studentPackageId) {
+        guard.require(Permission.PAYMENT_MANAGE);
         StudentPackage sp = findOrThrow(studentPackageId);
         if (sp.isPaid()) {
             throw new BusinessException("student_package.error.cancel_paid");

@@ -10,9 +10,14 @@ import com.paze.pilates.backend.repository.LessonParticipantRepository;
 import com.paze.pilates.backend.repository.LessonRepository;
 import com.paze.pilates.backend.repository.RoomRepository;
 import com.paze.pilates.backend.repository.StudentRepository;
+import com.paze.pilates.backend.security.CurrentUser;
+import com.paze.pilates.backend.security.PermissionGuard;
 import com.paze.pilates.dto.BusinessException;
+import com.paze.pilates.dto.InstructorDto;
 import com.paze.pilates.dto.LessonDto;
 import com.paze.pilates.dto.LessonParticipantDto;
+import com.paze.pilates.dto.Permission;
+import com.paze.pilates.dto.RoomDto;
 import com.paze.pilates.service.LessonService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,22 +36,26 @@ public class LessonServiceImpl implements LessonService {
     private final RoomRepository roomRepository;
     private final LessonParticipantRepository participantRepository;
     private final StudentRepository studentRepository;
+    private final PermissionGuard guard;
 
     public LessonServiceImpl(LessonRepository lessonRepository,
                              InstructorRepository instructorRepository,
                              RoomRepository roomRepository,
                              LessonParticipantRepository participantRepository,
-                             StudentRepository studentRepository) {
+                             StudentRepository studentRepository,
+                             PermissionGuard guard) {
         this.lessonRepository = lessonRepository;
         this.instructorRepository = instructorRepository;
         this.roomRepository = roomRepository;
         this.participantRepository = participantRepository;
         this.studentRepository = studentRepository;
+        this.guard = guard;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<LessonDto> findBetween(LocalDate from, LocalDate to) {
+        guard.require(Permission.LESSON_VIEW_ALL);
         if (from == null || to == null || to.isBefore(from)) {
             throw new BusinessException("lesson.error.range_invalid");
         }
@@ -61,9 +70,34 @@ public class LessonServiceImpl implements LessonService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<InstructorDto> findInstructorsForLessons() {
+        CurrentUser user = guard.requireAny(Permission.LESSON_MANAGE, Permission.LESSON_MANAGE_OWN);
+        boolean all = guard.has(Permission.LESSON_MANAGE);
+        return instructorRepository.findByActiveTrueOrderByFirstNameAscLastNameAsc().stream()
+                .filter(i -> all || (user.instructorId() != null && user.instructorId().equals(i.getId())))
+                .map(i -> new InstructorDto(i.getId(), i.getFirstName(), i.getLastName()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RoomDto> findRoomsForLessons() {
+        guard.requireAny(Permission.LESSON_MANAGE, Permission.LESSON_MANAGE_OWN);
+        return roomRepository.findByActiveTrueOrderByNameAsc().stream()
+                .map(r -> new RoomDto(r.getId(), r.getName(), r.getCapacity()))
+                .toList();
+    }
+
+    @Override
     @Transactional
     public LessonDto openLesson(Long instructorId, Long roomId, LocalDate date,
                                 LocalTime startTime, LocalTime endTime) {
+        CurrentUser user = guard.requireAny(Permission.LESSON_MANAGE, Permission.LESSON_MANAGE_OWN);
+        if (!guard.has(Permission.LESSON_MANAGE)
+                && (user.instructorId() == null || !user.instructorId().equals(instructorId))) {
+            throw new BusinessException("auth.error.forbidden");
+        }
         if (instructorId == null) {
             throw new BusinessException("lesson.error.instructor_required");
         }
@@ -103,6 +137,7 @@ public class LessonServiceImpl implements LessonService {
     @Override
     @Transactional(readOnly = true)
     public List<LessonParticipantDto> getParticipants(Long lessonId) {
+        guard.require(Permission.LESSON_VIEW_ALL);
         return participantRepository.findByLessonId(lessonId).stream()
                 .map(LessonServiceImpl::toParticipantDto)
                 .toList();
@@ -111,6 +146,7 @@ public class LessonServiceImpl implements LessonService {
     @Override
     @Transactional
     public LessonParticipantDto addParticipant(Long lessonId, Long studentId) {
+        CurrentUser user = guard.requireAny(Permission.LESSON_MANAGE, Permission.LESSON_MANAGE_OWN);
         if (lessonId == null) {
             throw new BusinessException("lesson.error.not_found");
         }
@@ -119,6 +155,7 @@ public class LessonServiceImpl implements LessonService {
         }
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new BusinessException("lesson.error.not_found"));
+        requireCanManage(lesson, user);
         if (LocalDateTime.of(lesson.getLessonDate(), lesson.getEndTime()).isBefore(LocalDateTime.now())) {
             throw new BusinessException("lesson.error.already_finished");
         }
@@ -142,13 +179,26 @@ public class LessonServiceImpl implements LessonService {
     @Override
     @Transactional
     public void removeParticipant(Long participantId) {
+        CurrentUser user = guard.requireAny(Permission.LESSON_MANAGE, Permission.LESSON_MANAGE_OWN);
         LessonParticipant participant = participantRepository.findById(participantId == null ? -1L : participantId)
                 .orElseThrow(() -> new BusinessException("lesson.error.participant_not_found"));
         Lesson lesson = participant.getLesson();
+        requireCanManage(lesson, user);
         if (LocalDateTime.of(lesson.getLessonDate(), lesson.getEndTime()).isBefore(LocalDateTime.now())) {
             throw new BusinessException("lesson.error.already_finished_remove");
         }
         participantRepository.delete(participant);
+    }
+
+    /** Yönetici her derse, hoca yalnızca kendi dersine işlem yapabilir. */
+    private void requireCanManage(Lesson lesson, CurrentUser user) {
+        if (!guard.has(Permission.LESSON_MANAGE) && !isOwnLesson(lesson, user)) {
+            throw new BusinessException("auth.error.forbidden");
+        }
+    }
+
+    private static boolean isOwnLesson(Lesson lesson, CurrentUser user) {
+        return user.instructorId() != null && user.instructorId().equals(lesson.getInstructor().getId());
     }
 
     private static LessonParticipantDto toParticipantDto(LessonParticipant p) {

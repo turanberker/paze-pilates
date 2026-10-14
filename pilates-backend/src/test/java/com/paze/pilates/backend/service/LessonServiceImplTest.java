@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.paze.pilates.backend.TestSecurity;
 import com.paze.pilates.backend.domain.Instructor;
 import com.paze.pilates.backend.domain.Lesson;
 import com.paze.pilates.backend.domain.LessonParticipant;
@@ -56,7 +57,7 @@ class LessonServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new LessonServiceImpl(lessonRepository, instructorRepository, roomRepository,
-                participantRepository, studentRepository);
+                participantRepository, studentRepository, TestSecurity.adminGuard());
         instructor = new Instructor("Ayşe", "Yılmaz");
         room = new Room("Reformer Salonu", 6);
     }
@@ -272,5 +273,106 @@ class LessonServiceImplTest {
 
         assertThatThrownBy(() -> service.removeParticipant(9L))
                 .hasMessage("lesson.error.participant_not_found");
+    }
+
+    @Test
+    void findBetween_instructorSeesAllLessons() {
+        Instructor other = new Instructor("Veli", "Can");
+        org.springframework.test.util.ReflectionTestUtils.setField(other, "id", 9L);
+        org.springframework.test.util.ReflectionTestUtils.setField(instructor, "id", 7L);
+        Lesson own = new Lesson(instructor, room, DATE, START, END);
+        Lesson foreign = new Lesson(other, room, DATE, START.plusHours(2), END.plusHours(2));
+        org.springframework.test.util.ReflectionTestUtils.setField(own, "id", 100L);
+        org.springframework.test.util.ReflectionTestUtils.setField(foreign, "id", 101L);
+        when(lessonRepository.findBetween(DATE, DATE)).thenReturn(java.util.List.of(own, foreign));
+        when(participantRepository.countByLessonIds(java.util.List.of(100L, 101L))).thenReturn(java.util.List.of());
+        LessonServiceImpl asInstructor = new LessonServiceImpl(lessonRepository, instructorRepository,
+                roomRepository, participantRepository, studentRepository,
+                TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)));
+
+        assertThat(asInstructor.findBetween(DATE, DATE)).extracting(LessonDto::id).containsExactly(100L, 101L);
+    }
+
+    @Test
+    void getParticipants_instructorCanSeeOthersLesson() {
+        when(participantRepository.findByLessonId(101L)).thenReturn(java.util.List.of());
+
+        assertThat(asInstructor(7L).getParticipants(101L)).isEmpty();
+    }
+
+    private LessonServiceImpl asInstructor(long instructorId) {
+        return new LessonServiceImpl(lessonRepository, instructorRepository, roomRepository,
+                participantRepository, studentRepository,
+                TestSecurity.guardFor(TestSecurity.instructor(2L, instructorId)));
+    }
+
+    private Lesson lessonOf(long instructorId, long lessonId) {
+        Instructor owner = new Instructor("Hoca", "No" + instructorId);
+        org.springframework.test.util.ReflectionTestUtils.setField(owner, "id", instructorId);
+        Lesson lesson = new Lesson(owner, room, DATE, START, END);
+        org.springframework.test.util.ReflectionTestUtils.setField(lesson, "id", lessonId);
+        return lesson;
+    }
+
+    @Test
+    void openLesson_instructorCanOnlyOpenForSelf() {
+        assertThatThrownBy(() -> asInstructor(7L).openLesson(9L, 2L, DATE, START, END))
+                .isInstanceOf(BusinessException.class).hasMessage("auth.error.forbidden");
+        assertThatThrownBy(() -> asInstructor(7L).openLesson(null, 2L, DATE, START, END))
+                .hasMessage("auth.error.forbidden");
+        verify(lessonRepository, never()).save(any());
+    }
+
+    @Test
+    void openLesson_instructorOpensOwnLesson() {
+        org.springframework.test.util.ReflectionTestUtils.setField(instructor, "id", 7L);
+        when(instructorRepository.findById(7L)).thenReturn(Optional.of(instructor));
+        when(roomRepository.findById(2L)).thenReturn(Optional.of(room));
+        when(lessonRepository.save(any(Lesson.class))).thenAnswer(i -> i.getArgument(0));
+
+        LessonDto result = asInstructor(7L).openLesson(7L, 2L, DATE, START, END);
+
+        assertThat(result.instructorId()).isEqualTo(7L);
+    }
+
+    @Test
+    void addParticipant_instructorCannotTouchOthersLesson() {
+        when(lessonRepository.findById(101L)).thenReturn(Optional.of(lessonOf(9L, 101L)));
+
+        assertThatThrownBy(() -> asInstructor(7L).addParticipant(101L, 3L))
+                .isInstanceOf(BusinessException.class).hasMessage("auth.error.forbidden");
+        verify(participantRepository, never()).save(any());
+    }
+
+    @Test
+    void removeParticipant_instructorCannotTouchOthersLesson() {
+        LessonParticipant participant = new LessonParticipant(lessonOf(9L, 101L), new Student("Ali", "Veli"));
+        when(participantRepository.findById(55L)).thenReturn(Optional.of(participant));
+
+        assertThatThrownBy(() -> asInstructor(7L).removeParticipant(55L)).hasMessage("auth.error.forbidden");
+        verify(participantRepository, never()).delete(any());
+    }
+
+    @Test
+    void removeParticipant_instructorRemovesFromOwnLesson() {
+        LessonParticipant participant = new LessonParticipant(lessonOf(7L, 100L), new Student("Ali", "Veli"));
+        when(participantRepository.findById(55L)).thenReturn(Optional.of(participant));
+
+        asInstructor(7L).removeParticipant(55L);
+
+        verify(participantRepository).delete(participant);
+    }
+
+    @Test
+    void findInstructorsForLessons_instructorSeesOnlySelf_adminSeesAll() {
+        Instructor self = new Instructor("Ayşe", "Yılmaz");
+        Instructor other = new Instructor("Veli", "Can");
+        org.springframework.test.util.ReflectionTestUtils.setField(self, "id", 7L);
+        org.springframework.test.util.ReflectionTestUtils.setField(other, "id", 9L);
+        when(instructorRepository.findByActiveTrueOrderByFirstNameAscLastNameAsc())
+                .thenReturn(java.util.List.of(self, other));
+
+        assertThat(asInstructor(7L).findInstructorsForLessons()).extracting("id").containsExactly(7L);
+        assertThat(service.findInstructorsForLessons()).extracting("id").containsExactly(7L, 9L);
     }
 }

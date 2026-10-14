@@ -3,6 +3,7 @@ package com.paze.pilates.desktop.ui.reservation;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.LessonDto;
 import com.paze.pilates.dto.LessonParticipantDto;
+import com.paze.pilates.service.AuthService;
 import com.paze.pilates.service.LessonService;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -37,6 +38,7 @@ public class LessonParticipantsDialog extends JDialog {
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     private final LessonService lessonService;
+    private final AuthService authService;
     private final MessageSource messages;
 
     private ParticipantTableModel tableModel;
@@ -45,8 +47,9 @@ public class LessonParticipantsDialog extends JDialog {
     private boolean changed;
     private JLabel statusLabel;
 
-    public LessonParticipantsDialog(LessonService lessonService, MessageSource messages) {
+    public LessonParticipantsDialog(LessonService lessonService, AuthService authService, MessageSource messages) {
         this.lessonService = lessonService;
+        this.authService = authService;
         this.messages = messages;
     }
 
@@ -82,7 +85,9 @@ public class LessonParticipantsDialog extends JDialog {
         bottom.setBorder(BorderFactory.createEmptyBorder(0, 20, 12, 20));
         bottom.add(statusLabel, BorderLayout.WEST);
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        buttons.add(removeBtn);
+        if (authService.getCurrentUser().map(u -> u.canManageLessonOf(lesson.instructorId())).orElse(false)) {
+            buttons.add(removeBtn);
+        }
         buttons.add(closeBtn);
         bottom.add(buttons, BorderLayout.EAST);
         add(bottom, BorderLayout.SOUTH);

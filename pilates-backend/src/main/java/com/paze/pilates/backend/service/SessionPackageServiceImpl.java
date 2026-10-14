@@ -2,6 +2,8 @@ package com.paze.pilates.backend.service;
 
 import com.paze.pilates.backend.domain.SessionPackage;
 import com.paze.pilates.backend.repository.SessionPackageRepository;
+import com.paze.pilates.backend.security.PermissionGuard;
+import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.SessionPackageDto;
 import com.paze.pilates.service.SessionPackageService;
@@ -14,15 +16,19 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SessionPackageServiceImpl implements SessionPackageService {
 
+    private final PermissionGuard guard;
+
     private final SessionPackageRepository repository;
 
-    public SessionPackageServiceImpl(SessionPackageRepository repository) {
+    public SessionPackageServiceImpl(SessionPackageRepository repository, PermissionGuard guard) {
+        this.guard = guard;
         this.repository = repository;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<SessionPackageDto> findAll() {
+        guard.require(Permission.PACKAGE_MANAGE);
         return repository.findAllByOrderByStartDateDescNameAsc()
                 .stream()
                 .map(this::toDto)
@@ -32,6 +38,7 @@ public class SessionPackageServiceImpl implements SessionPackageService {
     @Override
     @Transactional(readOnly = true)
     public List<SessionPackageDto> findActive() {
+        guard.require(Permission.PACKAGE_MANAGE);
         return repository.findByActiveTrueOrderByNameAsc()
                 .stream()
                 .map(this::toDto)
@@ -41,6 +48,7 @@ public class SessionPackageServiceImpl implements SessionPackageService {
     @Override
     @Transactional
     public SessionPackageDto save(SessionPackageDto dto) {
+        guard.require(Permission.PACKAGE_MANAGE);
         validate(dto);
 
         SessionPackage p;
@@ -60,6 +68,7 @@ public class SessionPackageServiceImpl implements SessionPackageService {
     @Override
     @Transactional
     public SessionPackageDto activate(Long id) {
+        guard.require(Permission.PACKAGE_MANAGE);
         SessionPackage p = findOrThrow(id);
         p.setActive(true);
         return toDto(repository.save(p));
@@ -68,6 +77,7 @@ public class SessionPackageServiceImpl implements SessionPackageService {
     @Override
     @Transactional
     public SessionPackageDto deactivate(Long id) {
+        guard.require(Permission.PACKAGE_MANAGE);
         SessionPackage p = findOrThrow(id);
         p.setActive(false);
         return toDto(repository.save(p));

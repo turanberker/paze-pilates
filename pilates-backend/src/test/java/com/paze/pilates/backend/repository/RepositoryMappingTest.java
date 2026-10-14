@@ -11,7 +11,7 @@ import com.paze.pilates.backend.domain.Room;
 import com.paze.pilates.backend.domain.SessionPackage;
 import com.paze.pilates.backend.domain.Student;
 import com.paze.pilates.backend.domain.StudentPackage;
-import com.paze.pilates.backend.domain.UserRole;
+import com.paze.pilates.dto.UserRole;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
@@ -61,7 +61,7 @@ class RepositoryMappingTest {
 
         assertThat(user.getCreatedAt()).isNotNull();
         assertThat(userRepository.findByUsername("admin")).isPresent();
-        assertThatThrownBy(() -> userRepository.saveAndFlush(new AppUser("admin", "x", "Başka", UserRole.RECEPTIONIST)))
+        assertThatThrownBy(() -> userRepository.saveAndFlush(new AppUser("admin", "x", "Başka", UserRole.INSTRUCTOR)))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
