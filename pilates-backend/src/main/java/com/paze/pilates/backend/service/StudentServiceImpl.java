@@ -1,33 +1,29 @@
 package com.paze.pilates.backend.service;
 
 import com.paze.pilates.backend.domain.Student;
+import com.paze.pilates.backend.mapper.StudentMapper;
 import com.paze.pilates.backend.repository.SessionDebtRepository;
 import com.paze.pilates.backend.repository.StudentRepository;
 import com.paze.pilates.backend.security.PermissionGuard;
-import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.BusinessException;
+import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.StudentDto;
 import com.paze.pilates.service.StudentService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class StudentServiceImpl implements StudentService {
-
-    private final PermissionGuard guard;
 
     private final StudentRepository studentRepository;
     private final SessionDebtRepository debtRepository;
-
-    public StudentServiceImpl(StudentRepository studentRepository, SessionDebtRepository debtRepository,
-                              PermissionGuard guard) {
-        this.guard = guard;
-        this.studentRepository = studentRepository;
-        this.debtRepository = debtRepository;
-    }
+    private final PermissionGuard guard;
+    private final StudentMapper mapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -130,20 +126,6 @@ public class StudentServiceImpl implements StudentService {
                 debts.put((Long) row[0], ((Long) row[1]).intValue());
             }
         }
-        return students.stream().map(s -> toDto(s, debts.getOrDefault(s.getId(), 0))).toList();
-    }
-
-    private StudentDto toDto(Student s, int sessionDebt) {
-        return new StudentDto(
-                s.getId(),
-                s.getFirstName(),
-                s.getLastName(),
-                s.getPhone(),
-                s.getEmail(),
-                s.getBirthDate(),
-                s.getNotes(),
-                s.isActive(),
-                sessionDebt
-        );
+        return students.stream().map(s -> mapper.toDto(s, debts.getOrDefault(s.getId(), 0))).toList();
     }
 }

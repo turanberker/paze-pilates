@@ -1,18 +1,21 @@
 package com.paze.pilates.backend.service;
 
 import com.paze.pilates.backend.domain.Instructor;
+import com.paze.pilates.backend.mapper.InstructorMapper;
 import com.paze.pilates.backend.repository.AppUserRepository;
 import com.paze.pilates.backend.repository.InstructorRepository;
 import com.paze.pilates.backend.security.PermissionGuard;
-import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.InstructorDto;
+import com.paze.pilates.dto.Permission;
 import com.paze.pilates.service.InstructorService;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class InstructorServiceImpl implements InstructorService {
 
     private static final int NAME_MAX_LENGTH = 50;
@@ -20,13 +23,7 @@ public class InstructorServiceImpl implements InstructorService {
     private final InstructorRepository instructorRepository;
     private final AppUserRepository userRepository;
     private final PermissionGuard guard;
-
-    public InstructorServiceImpl(InstructorRepository instructorRepository, AppUserRepository userRepository,
-                                 PermissionGuard guard) {
-        this.instructorRepository = instructorRepository;
-        this.userRepository = userRepository;
-        this.guard = guard;
-    }
+    private final InstructorMapper instructorMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -34,7 +31,7 @@ public class InstructorServiceImpl implements InstructorService {
         guard.require(Permission.INSTRUCTOR_MANAGE);
         return instructorRepository.findByActiveTrueOrderByFirstNameAscLastNameAsc()
                 .stream()
-                .map(InstructorServiceImpl::toDto)
+                .map(instructorMapper::toDto)
                 .toList();
     }
 
@@ -56,7 +53,7 @@ public class InstructorServiceImpl implements InstructorService {
             instructor.setFirstName(firstName);
             instructor.setLastName(lastName);
         }
-        return toDto(instructorRepository.save(instructor));
+        return instructorMapper.toDto(instructorRepository.save(instructor));
     }
 
     /** Hoca pasife alınır; derslerde kullanılan kayıtlar bozulmaz, bağlı kullanıcısı da pasife alınır. */
@@ -83,9 +80,5 @@ public class InstructorServiceImpl implements InstructorService {
             throw new BusinessException(tooLongKey);
         }
         return trimmed;
-    }
-
-    private static InstructorDto toDto(Instructor instructor) {
-        return new InstructorDto(instructor.getId(), instructor.getFirstName(), instructor.getLastName());
     }
 }

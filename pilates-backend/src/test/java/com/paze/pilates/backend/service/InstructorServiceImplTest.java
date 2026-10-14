@@ -8,8 +8,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.paze.pilates.backend.TestSecurity;
-import com.paze.pilates.backend.domain.Instructor;
 import com.paze.pilates.backend.domain.AppUser;
+import com.paze.pilates.backend.domain.Instructor;
+import com.paze.pilates.backend.mapper.InstructorMapper;
 import com.paze.pilates.backend.repository.AppUserRepository;
 import com.paze.pilates.backend.repository.InstructorRepository;
 import com.paze.pilates.dto.BusinessException;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -36,7 +38,8 @@ class InstructorServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new InstructorServiceImpl(instructorRepository, userRepository, TestSecurity.adminGuard());
+        service = new InstructorServiceImpl(instructorRepository, userRepository, TestSecurity.adminGuard(),
+                Mappers.getMapper(InstructorMapper.class));
     }
 
     @Test
@@ -128,7 +131,8 @@ class InstructorServiceImplTest {
     @Test
     void getInstructors_instructorRoleIsForbidden() {
         InstructorServiceImpl restricted = new InstructorServiceImpl(instructorRepository, userRepository,
-                TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)));
+                TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)),
+                Mappers.getMapper(InstructorMapper.class));
 
         assertThatThrownBy(restricted::getInstructors)
                 .isInstanceOf(BusinessException.class)

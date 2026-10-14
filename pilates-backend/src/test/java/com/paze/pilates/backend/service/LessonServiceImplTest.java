@@ -14,14 +14,17 @@ import com.paze.pilates.backend.domain.Lesson;
 import com.paze.pilates.backend.domain.LessonParticipant;
 import com.paze.pilates.backend.domain.Room;
 import com.paze.pilates.backend.domain.Student;
+import com.paze.pilates.backend.mapper.InstructorMapper;
+import com.paze.pilates.backend.mapper.LessonMapper;
+import com.paze.pilates.backend.mapper.RoomMapper;
+import com.paze.pilates.backend.repository.InstructorRepository;
 import com.paze.pilates.backend.repository.LessonParticipantRepository;
+import com.paze.pilates.backend.repository.LessonRepository;
+import com.paze.pilates.backend.repository.RoomRepository;
 import com.paze.pilates.backend.repository.SessionDebtRepository;
 import com.paze.pilates.backend.repository.StudentLessonHistoryRepository;
 import com.paze.pilates.backend.repository.StudentPackageRepository;
 import com.paze.pilates.backend.repository.StudentRepository;
-import com.paze.pilates.backend.repository.InstructorRepository;
-import com.paze.pilates.backend.repository.LessonRepository;
-import com.paze.pilates.backend.repository.RoomRepository;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.LessonDto;
 import com.paze.pilates.dto.LessonParticipantDto;
@@ -32,6 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -67,7 +71,10 @@ class LessonServiceImplTest {
     void setUp() {
         service = new LessonServiceImpl(lessonRepository, instructorRepository, roomRepository,
                 participantRepository, studentRepository, studentPackageRepository, historyRepository, debtRepository,
-                TestSecurity.adminGuard());
+                TestSecurity.adminGuard(),
+                Mappers.getMapper(LessonMapper.class),
+                Mappers.getMapper(InstructorMapper.class),
+                Mappers.getMapper(RoomMapper.class));
         instructor = new Instructor("Ayşe", "Yılmaz");
         room = new Room("Reformer Salonu", 6);
     }
@@ -298,7 +305,10 @@ class LessonServiceImplTest {
         when(participantRepository.countByLessonIds(java.util.List.of(100L, 101L))).thenReturn(java.util.List.of());
         LessonServiceImpl asInstructor = new LessonServiceImpl(lessonRepository, instructorRepository,
                 roomRepository, participantRepository, studentRepository, studentPackageRepository, historyRepository,
-                debtRepository, TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)));
+                debtRepository, TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)),
+                Mappers.getMapper(LessonMapper.class),
+                Mappers.getMapper(InstructorMapper.class),
+                Mappers.getMapper(RoomMapper.class));
 
         assertThat(asInstructor.findBetween(DATE, DATE)).extracting(LessonDto::id).containsExactly(100L, 101L);
     }
@@ -313,7 +323,10 @@ class LessonServiceImplTest {
     private LessonServiceImpl asInstructor(long instructorId) {
         return new LessonServiceImpl(lessonRepository, instructorRepository, roomRepository,
                 participantRepository, studentRepository, studentPackageRepository, historyRepository, debtRepository,
-                TestSecurity.guardFor(TestSecurity.instructor(2L, instructorId)));
+                TestSecurity.guardFor(TestSecurity.instructor(2L, instructorId)),
+                Mappers.getMapper(LessonMapper.class),
+                Mappers.getMapper(InstructorMapper.class),
+                Mappers.getMapper(RoomMapper.class));
     }
 
     private Lesson lessonOf(long instructorId, long lessonId) {

@@ -2,20 +2,18 @@ package com.paze.pilates.backend.security;
 
 import com.paze.pilates.dto.BusinessException;
 import java.nio.charset.StandardCharsets;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /** Uygulamada belirlenen şifreler için kurallar; sabit admin şifresi (yalnızca hash) buradan geçmez. */
 @Component
+@RequiredArgsConstructor
 public class PasswordPolicy {
 
     /** bcrypt yalnızca ilk 72 baytı kullanır. */
     public static final int MAX_BYTES = 72;
 
     private final PasswordPolicyProperties properties;
-
-    public PasswordPolicy(PasswordPolicyProperties properties) {
-        this.properties = properties;
-    }
 
     /** @param confirm null ise tekrar kontrolü yapılmaz */
     public void validate(String password, String confirm) {

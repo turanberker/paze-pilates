@@ -7,11 +7,16 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * Öğrencinin tamamlanan bir dersteki kaydı: geldi mi, seansı düşüldü mü ve hangi paketten düşüldü.
  * Seans düşülüp paket bulunamadıysa paket null kalır ve {@link SessionDebt} satırı açılır.
  */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "student_lesson_history")
 public class StudentLessonHistory extends BaseEntity {
@@ -38,9 +43,6 @@ public class StudentLessonHistory extends BaseEntity {
     @JoinColumn(name = "student_package_id")
     private StudentPackage studentPackage;
 
-    protected StudentLessonHistory() {
-    }
-
     public StudentLessonHistory(LessonParticipant participant, boolean attended, boolean charged) {
         this.lesson = participant.getLesson();
         this.student = participant.getStudent();
@@ -54,16 +56,4 @@ public class StudentLessonHistory extends BaseEntity {
         pkg.useSession();
         this.studentPackage = pkg;
     }
-
-    public Lesson getLesson() { return lesson; }
-
-    public Student getStudent() { return student; }
-
-    public LessonParticipant getParticipant() { return participant; }
-
-    public boolean isAttended() { return attended; }
-
-    public boolean isCharged() { return charged; }
-
-    public StudentPackage getStudentPackage() { return studentPackage; }
 }

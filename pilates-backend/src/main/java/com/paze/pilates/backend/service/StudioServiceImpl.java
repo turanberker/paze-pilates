@@ -2,39 +2,38 @@ package com.paze.pilates.backend.service;
 
 import com.paze.pilates.backend.domain.Room;
 import com.paze.pilates.backend.domain.Studio;
+import com.paze.pilates.backend.mapper.RoomMapper;
+import com.paze.pilates.backend.mapper.StudioMapper;
 import com.paze.pilates.backend.repository.RoomRepository;
 import com.paze.pilates.backend.repository.StudioRepository;
 import com.paze.pilates.backend.security.PermissionGuard;
-import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.BusinessException;
+import com.paze.pilates.dto.Permission;
 import com.paze.pilates.dto.RoomDto;
 import com.paze.pilates.dto.StudioDto;
 import com.paze.pilates.service.StudioService;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class StudioServiceImpl implements StudioService {
-
-    private final PermissionGuard guard;
 
     private final StudioRepository studioRepository;
     private final RoomRepository roomRepository;
-
-    public StudioServiceImpl(StudioRepository studioRepository, RoomRepository roomRepository, PermissionGuard guard) {
-        this.guard = guard;
-        this.studioRepository = studioRepository;
-        this.roomRepository = roomRepository;
-    }
+    private final PermissionGuard guard;
+    private final StudioMapper studioMapper;
+    private final RoomMapper roomMapper;
 
     @Override
     @Transactional(readOnly = true)
     public Optional<StudioDto> getStudio() {
         guard.require(Permission.STUDIO_MANAGE);
         return studioRepository.findFirstByOrderByIdAsc()
-                .map(s -> new StudioDto(s.getId(), s.getName()));
+                .map(studioMapper::toDto);
     }
 
     @Override
@@ -49,7 +48,7 @@ public class StudioServiceImpl implements StudioService {
                 : new Studio(dto.name());
         studio.setName(dto.name().trim());
         Studio saved = studioRepository.save(studio);
-        return new StudioDto(saved.getId(), saved.getName());
+        return studioMapper.toDto(saved);
     }
 
     @Override
@@ -58,7 +57,7 @@ public class StudioServiceImpl implements StudioService {
         guard.require(Permission.STUDIO_MANAGE);
         return roomRepository.findByActiveTrueOrderByNameAsc()
                 .stream()
-                .map(r -> new RoomDto(r.getId(), r.getName(), r.getCapacity()))
+                .map(roomMapper::toDto)
                 .toList();
     }
 
@@ -78,7 +77,7 @@ public class StudioServiceImpl implements StudioService {
             }
             Room room = new Room(dto.name().trim(), dto.capacity());
             Room saved = roomRepository.save(room);
-            return new RoomDto(saved.getId(), saved.getName(), saved.getCapacity());
+            return roomMapper.toDto(saved);
         } else {
             Room room = roomRepository.findById(dto.id()).orElseThrow();
             if (!room.getName().equalsIgnoreCase(dto.name().trim())
@@ -88,7 +87,7 @@ public class StudioServiceImpl implements StudioService {
             room.setName(dto.name().trim());
             room.setCapacity(dto.capacity());
             Room saved = roomRepository.save(room);
-            return new RoomDto(saved.getId(), saved.getName(), saved.getCapacity());
+            return roomMapper.toDto(saved);
         }
     }
 

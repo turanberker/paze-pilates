@@ -7,11 +7,17 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Öğrenciye atanmış paket. Toplam seans atama anında paketten kopyalanır;
  * paket tanımı sonradan değişse de öğrencinin hakkı değişmez.
  */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "student_package")
 public class StudentPackage extends BaseEntity {
@@ -30,17 +36,16 @@ public class StudentPackage extends BaseEntity {
     @Column(name = "used_sessions", nullable = false)
     private int usedSessions;
 
+    @Setter
     @Column(nullable = false)
     private boolean paid;
 
+    @Setter
     @Column(name = "payment_date")
     private LocalDate paymentDate;
 
     @Column(name = "assigned_date", nullable = false)
     private LocalDate assignedDate;
-
-    protected StudentPackage() {
-    }
 
     public StudentPackage(Student student, SessionPackage sessionPackage, LocalDate assignedDate) {
         this.student = student;
@@ -48,14 +53,6 @@ public class StudentPackage extends BaseEntity {
         this.totalSessions = sessionPackage.getSessionCount();
         this.assignedDate = assignedDate;
     }
-
-    public Student getStudent() { return student; }
-
-    public SessionPackage getSessionPackage() { return sessionPackage; }
-
-    public int getTotalSessions() { return totalSessions; }
-
-    public int getUsedSessions() { return usedSessions; }
 
     public boolean hasRemaining() { return usedSessions < totalSessions; }
 
@@ -76,12 +73,4 @@ public class StudentPackage extends BaseEntity {
     }
 
     public int getRemainingSessions() { return Math.max(0, totalSessions - usedSessions); }
-
-    public boolean isPaid() { return paid; }
-    public void setPaid(boolean paid) { this.paid = paid; }
-
-    public LocalDate getPaymentDate() { return paymentDate; }
-    public void setPaymentDate(LocalDate paymentDate) { this.paymentDate = paymentDate; }
-
-    public LocalDate getAssignedDate() { return assignedDate; }
 }

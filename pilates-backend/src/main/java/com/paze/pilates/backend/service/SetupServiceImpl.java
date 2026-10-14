@@ -11,11 +11,13 @@ import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.SetupRequestDto;
 import com.paze.pilates.dto.UserRole;
 import com.paze.pilates.service.SetupService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class SetupServiceImpl implements SetupService {
 
     private static final int NAME_MAX_LENGTH = 100;
@@ -25,18 +27,6 @@ public class SetupServiceImpl implements SetupService {
     private final PasswordEncoder passwordEncoder;
     private final StaticAdminProperties staticAdmin;
     private final PasswordPolicy passwordPolicy;
-
-    public SetupServiceImpl(AppUserRepository userRepository,
-                            StudioRepository studioRepository,
-                            PasswordEncoder passwordEncoder,
-                            StaticAdminProperties staticAdmin,
-                            PasswordPolicy passwordPolicy) {
-        this.userRepository = userRepository;
-        this.studioRepository = studioRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.staticAdmin = staticAdmin;
-        this.passwordPolicy = passwordPolicy;
-    }
 
     @Override
     @Transactional(readOnly = true)

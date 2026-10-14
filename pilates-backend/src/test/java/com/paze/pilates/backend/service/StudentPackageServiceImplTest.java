@@ -1,15 +1,16 @@
 package com.paze.pilates.backend.service;
 
 import com.paze.pilates.backend.TestSecurity;
-import com.paze.pilates.backend.domain.SessionPackage;
-import com.paze.pilates.backend.domain.Student;
-import com.paze.pilates.backend.domain.StudentPackage;
 import com.paze.pilates.backend.domain.Instructor;
 import com.paze.pilates.backend.domain.Lesson;
 import com.paze.pilates.backend.domain.LessonParticipant;
 import com.paze.pilates.backend.domain.Room;
 import com.paze.pilates.backend.domain.SessionDebt;
+import com.paze.pilates.backend.domain.SessionPackage;
+import com.paze.pilates.backend.domain.Student;
 import com.paze.pilates.backend.domain.StudentLessonHistory;
+import com.paze.pilates.backend.domain.StudentPackage;
+import com.paze.pilates.backend.mapper.StudentPackageMapper;
 import com.paze.pilates.backend.repository.SessionDebtRepository;
 import com.paze.pilates.backend.repository.SessionPackageRepository;
 import com.paze.pilates.backend.repository.StudentPackageRepository;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -59,7 +61,8 @@ class StudentPackageServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new StudentPackageServiceImpl(repository, studentRepository, packageRepository, debtRepository,
-                TestSecurity.adminGuard());
+                TestSecurity.adminGuard(),
+                Mappers.getMapper(StudentPackageMapper.class));
         student = new Student("Ayşe", "Yılmaz");
         pkg = new SessionPackage("8'li Paket", new BigDecimal("1500"), 8, TODAY);
     }

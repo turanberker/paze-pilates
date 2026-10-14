@@ -9,8 +9,13 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** Takvimde açılmış tek seferlik ders: hoca + oda + gün + saat aralığı. */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "lesson")
 public class Lesson extends BaseEntity {
@@ -38,9 +43,6 @@ public class Lesson extends BaseEntity {
     @Column(name = "completed_by", length = 100)
     private String completedBy;
 
-    protected Lesson() {
-    }
-
     public Lesson(Instructor instructor, Room room, LocalDate lessonDate, LocalTime startTime, LocalTime endTime) {
         this.instructor = instructor;
         this.room = room;
@@ -49,25 +51,11 @@ public class Lesson extends BaseEntity {
         this.endTime = endTime;
     }
 
-    public Instructor getInstructor() { return instructor; }
-
-    public Room getRoom() { return room; }
-
-    public LocalDate getLessonDate() { return lessonDate; }
-
-    public LocalTime getStartTime() { return startTime; }
-
-    public LocalTime getEndTime() { return endTime; }
-
     public LocalDateTime getStartDateTime() { return LocalDateTime.of(lessonDate, startTime); }
 
     public LocalDateTime getEndDateTime() { return LocalDateTime.of(lessonDate, endTime); }
 
     public boolean isCompleted() { return completedAt != null; }
-
-    public LocalDateTime getCompletedAt() { return completedAt; }
-
-    public String getCompletedBy() { return completedBy; }
 
     public void markCompleted(LocalDateTime at, String by) {
         this.completedAt = at;

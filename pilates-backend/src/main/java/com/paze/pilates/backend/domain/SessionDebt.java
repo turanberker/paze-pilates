@@ -6,8 +6,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** Paketi olmadığı için düşülemeyen seans. Öğrenciye paket atanınca düşülür ve satır silinir. */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "session_debt")
 public class SessionDebt extends BaseEntity {
@@ -20,15 +25,8 @@ public class SessionDebt extends BaseEntity {
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
 
-    protected SessionDebt() {
-    }
-
     public SessionDebt(StudentLessonHistory history) {
         this.history = history;
         this.student = history.getStudent();
     }
-
-    public StudentLessonHistory getHistory() { return history; }
-
-    public Student getStudent() { return student; }
 }
