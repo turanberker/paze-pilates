@@ -44,9 +44,9 @@ public class AuthServiceImpl implements AuthService {
         if (username == null || password == null || username.isBlank() || password.isEmpty()) {
             return false;
         }
-        if (staticAdmin.isStaticUsername(username)) {
-            // Sabit admin adı veritabanına düşmez; kapalıysa (hash boş) hiç giriş yapılamaz.
-            if (!staticAdmin.isEnabled() || !passwordEncoder.matches(password, staticAdmin.passwordHash())) {
+        if (staticAdmin.isEnabled() && staticAdmin.isStaticUsername(username)) {
+            // Sabit admin açıkken adı veritabanına düşmez; kapalıysa (hash boş) normal kullanıcı gibi aranır.
+            if (!passwordEncoder.matches(password, staticAdmin.passwordHash())) {
                 return false;
             }
             session.set(new CurrentUser(null, username, username, UserRole.ADMIN, null, true, false));
