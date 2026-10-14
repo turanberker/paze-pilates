@@ -8,11 +8,12 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.MessageSource;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-@Lazy
+@Scope(BeanDefinition.SCOPE_PROTOTYPE)
 @Component
 public class MainMenuBar extends JMenuBar {
 

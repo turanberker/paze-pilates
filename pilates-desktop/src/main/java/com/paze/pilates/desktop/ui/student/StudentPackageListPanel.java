@@ -39,7 +39,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.MessageSource;
 
 /** Öğrencilere atanan paketlerin listesi; paket atama ve ödeme alma buradan yapılır. */
-@org.springframework.context.annotation.Lazy
+@org.springframework.context.annotation.Scope("prototype")
 @org.springframework.stereotype.Component
 public class StudentPackageListPanel extends JPanel {
 

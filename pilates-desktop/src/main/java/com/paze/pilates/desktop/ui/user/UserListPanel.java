@@ -27,12 +27,13 @@ import javax.swing.table.AbstractTableModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.MessageSource;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 /** Tanımlamalar > Kullanıcılar: hoca için kullanıcı aç, şifre sıfırla, rol değiştir, pasife al. */
-@Lazy
+@Scope(BeanDefinition.SCOPE_PROTOTYPE)
 @Component
 public class UserListPanel extends JPanel {
 

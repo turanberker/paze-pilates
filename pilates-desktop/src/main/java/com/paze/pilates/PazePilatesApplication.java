@@ -21,18 +21,23 @@ public class PazePilatesApplication {
                 .headless(false)
                 .run(args);
 
-        boolean setupRequired = context.getBean(SetupService.class).isSetupRequired();
-
         SwingUtilities.invokeLater(() -> {
             FlatLightLaf.setup();
-
-            if (authenticate(context, setupRequired)) {
-                context.getBean(MainFrame.class).showWindow();
-            } else {
-                context.close();
-                System.exit(0);
-            }
+            startSession(context);
         });
+    }
+
+    /** Giriş (veya ilk kurulum) → ana pencere. Çıkış yapılınca aynı akış yeniden başlar, uygulama kapanmaz. */
+    private static void startSession(ConfigurableApplicationContext context) {
+        boolean setupRequired = context.getBean(SetupService.class).isSetupRequired();
+        if (authenticate(context, setupRequired)) {
+            MainFrame frame = context.getBean(MainFrame.class);
+            frame.setLogoutCallback(() -> startSession(context));
+            frame.showWindow();
+        } else {
+            context.close();
+            System.exit(0);
+        }
     }
 
     /**

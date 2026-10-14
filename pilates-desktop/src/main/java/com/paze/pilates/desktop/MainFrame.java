@@ -27,12 +27,13 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.WindowConstants;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.MessageSource;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-@Lazy
+@Scope(BeanDefinition.SCOPE_PROTOTYPE)
 @Component
 public class MainFrame extends JFrame {
 
@@ -57,6 +58,8 @@ public class MainFrame extends JFrame {
     private final CardLayout cardLayout = new CardLayout();
     private JPanel contentCards;
     private StudentPackageListPanel loadedStudentPackagePanel;
+    private Runnable logoutCallback;
+    private boolean loggingOut;
 
     /**
      * Paneller girişten sonra, yalnızca kullanıcının yetkisi olanlar oluşturulur
@@ -129,7 +132,7 @@ public class MainFrame extends JFrame {
         content.add(contentCards);
 
         menuBar.setNavCallback(this::showPanel);
-        menuBar.setExitCallback(this::dispose);
+        menuBar.setExitCallback(this::logout);
         menuBar.setChangePasswordCallback(this::onChangePassword);
         menuBar.build(user);
         setJMenuBar(menuBar);
@@ -141,10 +144,28 @@ public class MainFrame extends JFrame {
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
+                if (loggingOut) {
+                    return;
+                }
                 context.close();
                 System.exit(0);
             }
         });
+    }
+
+    /** Oturumu kapatır, pencereyi kapatır ve (verilmişse) giriş ekranına dönülmesini sağlar. */
+    private void logout() {
+        loggingOut = true;
+        authService.logout();
+        dispose();
+        if (logoutCallback != null) {
+            logoutCallback.run();
+        }
+    }
+
+    /** Çıkış yapıldığında çalışır; uygulama kapanmaz, çağıran giriş ekranını yeniden gösterir. */
+    public void setLogoutCallback(Runnable callback) {
+        this.logoutCallback = callback;
     }
 
     private void addCard(AppUserDto user, NavTarget target, ObjectProvider<? extends JPanel> provider) {

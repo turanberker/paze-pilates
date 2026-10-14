@@ -42,7 +42,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.MessageSource;
 
 /** Haftalık takvim; boş saate çift tıklayarak ders açılır. */
-@org.springframework.context.annotation.Lazy
+@org.springframework.context.annotation.Scope("prototype")
 @org.springframework.stereotype.Component
 public class CalendarPanel extends JPanel {
 
