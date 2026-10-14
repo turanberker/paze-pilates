@@ -55,14 +55,11 @@ public class LessonServiceImpl implements LessonService {
     @Override
     @Transactional(readOnly = true)
     public List<LessonDto> findBetween(LocalDate from, LocalDate to) {
-        CurrentUser user = guard.requireAny(Permission.LESSON_VIEW_ALL, Permission.LESSON_VIEW_OWN);
+        guard.require(Permission.LESSON_VIEW_ALL);
         if (from == null || to == null || to.isBefore(from)) {
             throw new BusinessException("lesson.error.range_invalid");
         }
         List<Lesson> lessons = lessonRepository.findBetween(from, to);
-        if (!guard.has(Permission.LESSON_VIEW_ALL)) {
-            lessons = lessons.stream().filter(l -> isOwnLesson(l, user)).toList();
-        }
         Map<Long, Integer> counts = new HashMap<>();
         if (!lessons.isEmpty()) {
             for (Object[] row : participantRepository.countByLessonIds(lessons.stream().map(Lesson::getId).toList())) {
@@ -140,14 +137,7 @@ public class LessonServiceImpl implements LessonService {
     @Override
     @Transactional(readOnly = true)
     public List<LessonParticipantDto> getParticipants(Long lessonId) {
-        CurrentUser user = guard.requireAny(Permission.LESSON_VIEW_ALL, Permission.LESSON_VIEW_OWN);
-        if (!guard.has(Permission.LESSON_VIEW_ALL)) {
-            Lesson lesson = lessonRepository.findById(lessonId == null ? -1L : lessonId)
-                    .orElseThrow(() -> new BusinessException("lesson.error.not_found"));
-            if (!isOwnLesson(lesson, user)) {
-                throw new BusinessException("auth.error.forbidden");
-            }
-        }
+        guard.require(Permission.LESSON_VIEW_ALL);
         return participantRepository.findByLessonId(lessonId).stream()
                 .map(LessonServiceImpl::toParticipantDto)
                 .toList();

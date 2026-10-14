@@ -276,7 +276,7 @@ class LessonServiceImplTest {
     }
 
     @Test
-    void findBetween_instructorSeesOnlyOwnLessons() {
+    void findBetween_instructorSeesAllLessons() {
         Instructor other = new Instructor("Veli", "Can");
         org.springframework.test.util.ReflectionTestUtils.setField(other, "id", 9L);
         org.springframework.test.util.ReflectionTestUtils.setField(instructor, "id", 7L);
@@ -285,27 +285,19 @@ class LessonServiceImplTest {
         org.springframework.test.util.ReflectionTestUtils.setField(own, "id", 100L);
         org.springframework.test.util.ReflectionTestUtils.setField(foreign, "id", 101L);
         when(lessonRepository.findBetween(DATE, DATE)).thenReturn(java.util.List.of(own, foreign));
-        when(participantRepository.countByLessonIds(java.util.List.of(100L))).thenReturn(java.util.List.of());
+        when(participantRepository.countByLessonIds(java.util.List.of(100L, 101L))).thenReturn(java.util.List.of());
         LessonServiceImpl asInstructor = new LessonServiceImpl(lessonRepository, instructorRepository,
                 roomRepository, participantRepository, studentRepository,
                 TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)));
 
-        assertThat(asInstructor.findBetween(DATE, DATE)).extracting(LessonDto::id).containsExactly(100L);
+        assertThat(asInstructor.findBetween(DATE, DATE)).extracting(LessonDto::id).containsExactly(100L, 101L);
     }
 
     @Test
-    void getParticipants_instructorCannotSeeOthersLesson() {
-        Instructor other = new Instructor("Veli", "Can");
-        org.springframework.test.util.ReflectionTestUtils.setField(other, "id", 9L);
-        Lesson foreign = new Lesson(other, room, DATE, START, END);
-        when(lessonRepository.findById(101L)).thenReturn(Optional.of(foreign));
-        LessonServiceImpl asInstructor = new LessonServiceImpl(lessonRepository, instructorRepository,
-                roomRepository, participantRepository, studentRepository,
-                TestSecurity.guardFor(TestSecurity.instructor(2L, 7L)));
+    void getParticipants_instructorCanSeeOthersLesson() {
+        when(participantRepository.findByLessonId(101L)).thenReturn(java.util.List.of());
 
-        assertThatThrownBy(() -> asInstructor.getParticipants(101L))
-                .isInstanceOf(BusinessException.class).hasMessage("auth.error.forbidden");
-        verify(participantRepository, never()).findByLessonId(any());
+        assertThat(asInstructor(7L).getParticipants(101L)).isEmpty();
     }
 
     private LessonServiceImpl asInstructor(long instructorId) {

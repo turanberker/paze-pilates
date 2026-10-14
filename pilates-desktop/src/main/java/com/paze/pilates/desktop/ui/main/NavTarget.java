@@ -15,7 +15,7 @@ public enum NavTarget {
     USERS("users", Permission.USER_MANAGE),
     STUDENT("student", Permission.STUDENT_MANAGE),
     STUDENT_PACKAGE("student_package", Permission.PAYMENT_MANAGE),
-    CALENDAR("calendar", Permission.LESSON_VIEW_ALL, Permission.LESSON_VIEW_OWN),
+    CALENDAR("calendar", Permission.LESSON_VIEW_ALL),
     PACKAGE("package", Permission.PACKAGE_MANAGE),
     FINANCE("finance", Permission.PAYMENT_MANAGE),
     REPORT("report", Permission.REPORT_VIEW);

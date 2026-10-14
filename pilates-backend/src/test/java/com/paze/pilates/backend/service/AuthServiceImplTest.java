@@ -96,7 +96,7 @@ class AuthServiceImplTest {
 
         assertThat(service.authenticate("hoca", "sifre1234")).isTrue();
         assertThat(service.getCurrentUser().orElseThrow().permissions())
-                .containsExactlyInAnyOrder(Permission.LESSON_VIEW_OWN, Permission.LESSON_MANAGE_OWN,
+                .containsExactlyInAnyOrder(Permission.LESSON_VIEW_ALL, Permission.LESSON_MANAGE_OWN,
                         Permission.STUDENT_MANAGE);
     }
 

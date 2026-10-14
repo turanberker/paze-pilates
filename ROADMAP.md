@@ -20,7 +20,7 @@ _Son güncelleme: 2026-10-14_
   - ✅ Son aktif yönetici korunur; hoca pasife alınınca kullanıcısı da pasife alınır
   - ✅ Sabit (static) admin: `paze.security.static-admin.*`, bcrypt hash `application-local.yml` veya `PAZE_STATIC_ADMIN_PASSWORD_HASH`; hash üretmek için `--hash-password=<şifre>`
   - ✅ Şifre kuralları `paze.security.password.*` ile yml'den ayarlanır (uzunluk, büyük/küçük harf, rakam, özel karakter)
-  - ✅ Hoca kendi adına ders açabilir, yalnızca kendi dersinin katılımcılarını yönetebilir; başkasının dersinde işlem yapamaz; öğrenci tanımlayabilir
+  - ✅ Hoca tüm dersleri ve katılımcıları görür; kendi adına ders açabilir, yalnızca kendi dersinde işlem yapabilir; öğrenci tanımlayabilir
 
 ## ⬜ Planlananlar
 

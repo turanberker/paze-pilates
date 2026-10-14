@@ -12,6 +12,5 @@ public enum Permission {
     /** Yalnızca kendi adına ders açma; kendi derslerinin katılımcılarını yönetme. */
     LESSON_MANAGE_OWN,
     LESSON_VIEW_ALL,
-    LESSON_VIEW_OWN,
     REPORT_VIEW
 }

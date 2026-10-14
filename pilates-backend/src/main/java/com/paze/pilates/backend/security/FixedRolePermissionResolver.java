@@ -6,12 +6,12 @@ import java.util.EnumSet;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
-/** Sabit rol tablosu: yönetici her şey; hoca kendi derslerini görür/yönetir ve öğrenci tanımlayabilir. */
+/** Sabit rol tablosu: yönetici her şey; hoca tüm dersleri görür, yalnızca kendi derslerini yönetir ve öğrenci tanımlayabilir. */
 @Component
 public class FixedRolePermissionResolver implements RolePermissionResolver {
 
     private static final Set<Permission> ADMIN = EnumSet.allOf(Permission.class);
-    private static final Set<Permission> INSTRUCTOR = EnumSet.of(Permission.LESSON_VIEW_OWN, Permission.LESSON_MANAGE_OWN,
+    private static final Set<Permission> INSTRUCTOR = EnumSet.of(Permission.LESSON_VIEW_ALL, Permission.LESSON_MANAGE_OWN,
             Permission.STUDENT_MANAGE);
 
     @Override
