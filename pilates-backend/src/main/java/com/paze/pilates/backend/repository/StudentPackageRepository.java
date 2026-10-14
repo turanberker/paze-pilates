@@ -10,6 +10,7 @@ public interface StudentPackageRepository extends JpaRepository<StudentPackage, 
 
     /**
      * Öğrenci adına ve kalan seans durumuna göre atamaları yeniden eskiye döner.
+     * Kalan/biten filtrelerinde iptal edilenler dışlanır.
      *
      * @param term          ad/soyad içinde aranacak metin ("" → hepsi)
      * @param onlyRemaining true → yalnızca seansı kalanlar
@@ -20,8 +21,8 @@ public interface StudentPackageRepository extends JpaRepository<StudentPackage, 
               join fetch sp.student s
               join fetch sp.sessionPackage p
             where lower(concat(s.firstName, ' ', s.lastName)) like lower(concat('%', :term, '%'))
-              and (:onlyRemaining = false or sp.usedSessions < sp.totalSessions)
-              and (:onlyFinished = false or sp.usedSessions >= sp.totalSessions)
+              and (:onlyRemaining = false or (sp.cancelled = false and sp.usedSessions < sp.totalSessions))
+              and (:onlyFinished = false or (sp.cancelled = false and sp.usedSessions >= sp.totalSessions))
             order by sp.assignedDate desc, sp.id desc
             """)
     List<StudentPackage> search(@Param("term") String term,

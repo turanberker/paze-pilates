@@ -179,4 +179,54 @@ class StudentPackageServiceImplTest {
         verify(repository).search("ay", false, true);
         verify(repository).search("", false, false);
     }
+
+    @Test
+    @DisplayName("cancel: ödemesi alınmamış atama iptal edilir, kayıt silinmez")
+    void cancel_unpaid_marksCancelled() {
+        StudentPackage sp = new StudentPackage(student, pkg, TODAY);
+        when(repository.findById(5L)).thenReturn(Optional.of(sp));
+        when(repository.save(any(StudentPackage.class))).thenAnswer(i -> i.getArgument(0));
+
+        StudentPackageDto result = service.cancel(5L);
+
+        assertThat(result.cancelled()).isTrue();
+        assertThat(result.cancelledDate()).isEqualTo(TODAY);
+        verify(repository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("cancel: ödemesi alınmış atama iptal edilemez")
+    void cancel_paid_throws() {
+        StudentPackage sp = new StudentPackage(student, pkg, TODAY);
+        sp.setPaid(true);
+        sp.setPaymentDate(TODAY);
+        when(repository.findById(5L)).thenReturn(Optional.of(sp));
+
+        assertThatThrownBy(() -> service.cancel(5L))
+                .hasMessage("student_package.error.cancel_paid");
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("cancel: zaten iptal edilmiş atama tekrar iptal edilemez")
+    void cancel_alreadyCancelled_throws() {
+        StudentPackage sp = new StudentPackage(student, pkg, TODAY);
+        sp.setCancelled(true);
+        when(repository.findById(5L)).thenReturn(Optional.of(sp));
+
+        assertThatThrownBy(() -> service.cancel(5L))
+                .hasMessage("student_package.error.already_cancelled");
+    }
+
+    @Test
+    @DisplayName("completePayment: iptal edilmiş atamanın ödemesi alınamaz")
+    void completePayment_cancelled_throws() {
+        StudentPackage sp = new StudentPackage(student, pkg, TODAY);
+        sp.setCancelled(true);
+        when(repository.findById(5L)).thenReturn(Optional.of(sp));
+
+        assertThatThrownBy(() -> service.completePayment(5L, TODAY))
+                .hasMessage("student_package.error.cancelled");
+        verify(repository, never()).save(any());
+    }
 }

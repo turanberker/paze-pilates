@@ -16,6 +16,8 @@ import java.time.LocalDate;
  * @param paid              ödeme alındı mı
  * @param paymentDate       ödeme tarihi (ödenmediyse null)
  * @param assignedDate      atama tarihi
+ * @param cancelled         iptal edildi mi
+ * @param cancelledDate     iptal tarihi (iptal edilmediyse null)
  */
 public record StudentPackageDto(
         Long id,
@@ -28,6 +30,8 @@ public record StudentPackageDto(
         int remainingSessions,
         boolean paid,
         LocalDate paymentDate,
-        LocalDate assignedDate
+        LocalDate assignedDate,
+        boolean cancelled,
+        LocalDate cancelledDate
 ) {
 }

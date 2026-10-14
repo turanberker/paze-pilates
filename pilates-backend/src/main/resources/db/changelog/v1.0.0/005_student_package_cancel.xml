@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- Paket ataması iptali; kayıt silinmez, tarihçede kalır -->
+    <changeSet id="1.0.0-005" author="berker">
+        <addColumn tableName="student_package">
+            <column name="cancelled" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cancelled_date" type="DATE"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

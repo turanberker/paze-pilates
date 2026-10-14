@@ -9,5 +9,6 @@
     <include file="v1.0.0/002_student_update.xml" relativeToChangelogFile="true"/>
     <include file="v1.0.0/003_session_package.xml" relativeToChangelogFile="true"/>
     <include file="v1.0.0/004_student_package.xml" relativeToChangelogFile="true"/>
+    <include file="v1.0.0/005_student_package_cancel.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

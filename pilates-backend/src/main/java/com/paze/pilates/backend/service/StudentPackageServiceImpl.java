@@ -75,8 +75,10 @@ public class StudentPackageServiceImpl implements StudentPackageService {
     @Override
     @Transactional
     public StudentPackageDto completePayment(Long studentPackageId, LocalDate paymentDate) {
-        StudentPackage sp = repository.findById(studentPackageId)
-                .orElseThrow(() -> new BusinessException("student_package.error.not_found"));
+        StudentPackage sp = findOrThrow(studentPackageId);
+        if (sp.isCancelled()) {
+            throw new BusinessException("student_package.error.cancelled");
+        }
         if (sp.isPaid()) {
             throw new BusinessException("student_package.error.already_paid");
         }
@@ -85,6 +87,27 @@ public class StudentPackageServiceImpl implements StudentPackageService {
         sp.setPaid(true);
         sp.setPaymentDate(paymentDate);
         return toDto(repository.save(sp));
+    }
+
+    @Override
+    @Transactional
+    public StudentPackageDto cancel(Long studentPackageId) {
+        StudentPackage sp = findOrThrow(studentPackageId);
+        if (sp.isCancelled()) {
+            throw new BusinessException("student_package.error.already_cancelled");
+        }
+        if (sp.isPaid()) {
+            throw new BusinessException("student_package.error.cancel_paid");
+        }
+
+        sp.setCancelled(true);
+        sp.setCancelledDate(LocalDate.now());
+        return toDto(repository.save(sp));
+    }
+
+    private StudentPackage findOrThrow(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new BusinessException("student_package.error.not_found"));
     }
 
     private void validatePaymentDate(LocalDate paymentDate) {
@@ -110,6 +133,8 @@ public class StudentPackageServiceImpl implements StudentPackageService {
                 sp.getRemainingSessions(),
                 sp.isPaid(),
                 sp.getPaymentDate(),
-                sp.getAssignedDate());
+                sp.getAssignedDate(),
+                sp.isCancelled(),
+                sp.getCancelledDate());
     }
 }
