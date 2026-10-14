@@ -1,5 +1,6 @@
 package com.paze.pilates.desktop;
 
+import com.paze.pilates.desktop.ui.finance.PackageListPanel;
 import com.paze.pilates.desktop.ui.finance.PaymentPanel;
 import com.paze.pilates.desktop.ui.instructor.InstructorListPanel;
 import com.paze.pilates.desktop.ui.main.DashboardPanel;
@@ -38,6 +39,7 @@ public class MainFrame extends JFrame {
     private final InstructorListPanel instructorPanel;
     private final StudentListPanel studentPanel;
     private final CalendarPanel calendarPanel;
+    private final PackageListPanel packagePanel;
     private final PaymentPanel paymentPanel;
     private final ReportPanel reportPanel;
 
@@ -54,6 +56,7 @@ public class MainFrame extends JFrame {
             InstructorListPanel instructorPanel,
             StudentListPanel studentPanel,
             CalendarPanel calendarPanel,
+            PackageListPanel packagePanel,
             PaymentPanel paymentPanel,
             ReportPanel reportPanel) {
 
@@ -66,6 +69,7 @@ public class MainFrame extends JFrame {
         this.instructorPanel = instructorPanel;
         this.studentPanel = studentPanel;
         this.calendarPanel = calendarPanel;
+        this.packagePanel = packagePanel;
         this.paymentPanel = paymentPanel;
         this.reportPanel = reportPanel;
 
@@ -84,6 +88,7 @@ public class MainFrame extends JFrame {
         contentCards.add(instructorPanel,"instructor");
         contentCards.add(studentPanel,   "student");
         contentCards.add(calendarPanel,  "calendar");
+        contentCards.add(packagePanel,   "package");
         contentCards.add(paymentPanel,   "finance");
         contentCards.add(reportPanel,    "report");
 

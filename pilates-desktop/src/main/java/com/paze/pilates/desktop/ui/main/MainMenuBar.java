@@ -43,6 +43,7 @@ public class MainMenuBar extends JMenuBar {
         planningMenu.add(navItem("menu.planning.calendar", "calendar"));
 
         JMenu financeMenu = new JMenu(text("menu.finance"));
+        financeMenu.add(navItem("menu.finance.packages", "package"));
         financeMenu.add(navItem("menu.finance.payments", "finance"));
 
         JMenu reportMenu = new JMenu(text("menu.report"));
