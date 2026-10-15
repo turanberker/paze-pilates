@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.paze.pilates.backend.domain.AppUser;
+import com.paze.pilates.backend.domain.Expense;
 import com.paze.pilates.backend.domain.Instructor;
 import com.paze.pilates.backend.domain.Lesson;
 import com.paze.pilates.backend.domain.LessonParticipant;
@@ -50,6 +51,9 @@ class RepositoryMappingTest {
 
     @Autowired
     private StudentPackageRepository studentPackageRepository;
+
+    @Autowired
+    private ExpenseRepository expenseRepository;
 
     @Autowired
     private LessonRepository lessonRepository;
@@ -257,5 +261,37 @@ class RepositoryMappingTest {
         assertThatThrownBy(() -> historyRepository.saveAndFlush(new StudentLessonHistory(
                 participantRepository.findById(lateP.getId()).orElseThrow(), true, true)))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void sumsMonthlyIncomeAndExpenses() {
+        Student ali = studentRepository.save(new Student("Ali", "Kaya"));
+        SessionPackage pkg = packageRepository.save(
+                new SessionPackage("4'lü", new BigDecimal("800"), 4, LocalDate.of(2026, 1, 1)));
+        StudentPackage paidIn = new StudentPackage(ali, pkg, LocalDate.of(2026, 1, 20));
+        paidIn.setPaid(true);
+        paidIn.setPaymentDate(LocalDate.of(2026, 2, 28));
+        studentPackageRepository.save(paidIn);
+        StudentPackage paidOut = new StudentPackage(ali, pkg, LocalDate.of(2026, 3, 1));
+        paidOut.setPaid(true);
+        paidOut.setPaymentDate(LocalDate.of(2026, 3, 1));
+        studentPackageRepository.save(paidOut);
+        studentPackageRepository.save(new StudentPackage(ali, pkg, LocalDate.of(2026, 2, 5)));
+
+        expenseRepository.save(new Expense(LocalDate.of(2026, 2, 1), new BigDecimal("100.25"), "Fatura"));
+        expenseRepository.save(new Expense(LocalDate.of(2026, 2, 28), new BigDecimal("400.00"), "Kira"));
+        expenseRepository.saveAndFlush(new Expense(LocalDate.of(2026, 3, 1), new BigDecimal("50.00"), "Malzeme"));
+        entityManager.clear();
+
+        LocalDate from = LocalDate.of(2026, 2, 1);
+        LocalDate to = LocalDate.of(2026, 2, 28);
+        assertThat(studentPackageRepository.sumPriceCollectedBetween(from, to)).isEqualByComparingTo("800");
+        assertThat(studentPackageRepository.countCollectedBetween(from, to)).isEqualTo(1);
+        assertThat(expenseRepository.sumAmountBetween(from, to)).isEqualByComparingTo("500.25");
+        assertThat(expenseRepository.countByExpenseDateBetween(from, to)).isEqualTo(2);
+        assertThat(expenseRepository.findByExpenseDateBetweenOrderByExpenseDateDescIdDesc(from, to))
+                .extracting(Expense::getDescription).containsExactly("Kira", "Fatura");
+        assertThat(expenseRepository.sumAmountBetween(LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 30)))
+                .isEqualByComparingTo("0");
     }
 }
