@@ -14,5 +14,6 @@
     <include file="v1.0.0/007_user_roles.xml" relativeToChangelogFile="true"/>
     <include file="v1.0.0/008_lesson_completion.xml" relativeToChangelogFile="true"/>
     <include file="v1.0.0/009_studio_logo.xml" relativeToChangelogFile="true"/>
+    <include file="v1.0.0/010_expense.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

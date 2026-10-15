@@ -1,6 +1,7 @@
 package com.paze.pilates.desktop;
 
 import com.paze.pilates.desktop.ui.auth.ChangePasswordDialog;
+import com.paze.pilates.desktop.ui.finance.ExpensePanel;
 import com.paze.pilates.desktop.ui.finance.PackageListPanel;
 import com.paze.pilates.desktop.ui.finance.PaymentPanel;
 import com.paze.pilates.desktop.ui.instructor.InstructorListPanel;
@@ -66,6 +67,7 @@ public class MainFrame extends JFrame {
     private final ObjectProvider<CalendarPanel> calendarPanel;
     private final ObjectProvider<PackageListPanel> packagePanel;
     private final ObjectProvider<PaymentPanel> paymentPanel;
+    private final ObjectProvider<ExpensePanel> expensePanel;
     private final ObjectProvider<ReportPanel> reportPanel;
     private final ObjectProvider<StudioSettingsPanel> studioSettingsPanel;
 
@@ -74,6 +76,7 @@ public class MainFrame extends JFrame {
     private StudentPackageListPanel loadedStudentPackagePanel;
     private DashboardPanel loadedDashboardPanel;
     private StudioSettingsPanel loadedStudioSettingsPanel;
+    private ExpensePanel loadedExpensePanel;
     private Runnable logoutCallback;
     private boolean loggingOut;
 
@@ -98,6 +101,7 @@ public class MainFrame extends JFrame {
             ObjectProvider<CalendarPanel> calendarPanel,
             ObjectProvider<PackageListPanel> packagePanel,
             ObjectProvider<PaymentPanel> paymentPanel,
+            ObjectProvider<ExpensePanel> expensePanel,
             ObjectProvider<ReportPanel> reportPanel,
             ObjectProvider<StudioSettingsPanel> studioSettingsPanel) {
 
@@ -117,6 +121,7 @@ public class MainFrame extends JFrame {
         this.calendarPanel = calendarPanel;
         this.packagePanel = packagePanel;
         this.paymentPanel = paymentPanel;
+        this.expensePanel = expensePanel;
         this.reportPanel = reportPanel;
         this.studioSettingsPanel = studioSettingsPanel;
 
@@ -147,6 +152,10 @@ public class MainFrame extends JFrame {
         addCard(user, NavTarget.CALENDAR, calendarPanel);
         addCard(user, NavTarget.PACKAGE, packagePanel);
         addCard(user, NavTarget.FINANCE, paymentPanel);
+        if (NavTarget.EXPENSE.isAllowedFor(user)) {
+            loadedExpensePanel = expensePanel.getObject();
+            contentCards.add(loadedExpensePanel, NavTarget.EXPENSE.key());
+        }
         addCard(user, NavTarget.REPORT, reportPanel);
         if (NavTarget.STUDIO_SETTINGS.isAllowedFor(user)) {
             loadedStudioSettingsPanel = studioSettingsPanel.getObject();
@@ -239,6 +248,10 @@ public class MainFrame extends JFrame {
         }
         if (NavTarget.STUDIO_SETTINGS.key().equals(name) && loadedStudioSettingsPanel != null) {
             loadedStudioSettingsPanel.reload();
+        }
+        // Paket ödemeleri başka ekranda alınabildiği için özet her açılışta tazelenir.
+        if (NavTarget.EXPENSE.key().equals(name) && loadedExpensePanel != null) {
+            loadedExpensePanel.reload();
         }
         cardLayout.show(contentCards, name);
     }

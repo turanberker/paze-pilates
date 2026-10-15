@@ -51,6 +51,17 @@ public interface StudentPackageRepository extends JpaRepository<StudentPackage, 
     @Query("select count(sp) from StudentPackage sp where sp.paid = true and sp.paymentDate = :date")
     long countCollectedOn(@Param("date") LocalDate date);
 
+    /** Verilen tarih aralığında (uçlar dahil) ödemesi alınan paketlerin fiyat toplamı. */
+    @Query("""
+            select coalesce(sum(p.price), 0) from StudentPackage sp join sp.sessionPackage p
+            where sp.paid = true and sp.paymentDate between :from and :to
+            """)
+    BigDecimal sumPriceCollectedBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /** Verilen tarih aralığında (uçlar dahil) ödemesi alınan paket sayısı. */
+    @Query("select count(sp) from StudentPackage sp where sp.paid = true and sp.paymentDate between :from and :to")
+    long countCollectedBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
     /** Ödemesi alınmamış paketlerin fiyat toplamı. */
     @Query("""
             select coalesce(sum(p.price), 0) from StudentPackage sp join sp.sessionPackage p

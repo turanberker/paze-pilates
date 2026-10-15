@@ -77,6 +77,7 @@ public class MainMenuBar extends JMenuBar {
         JMenu financeMenu = new JMenu(text("menu.finance"));
         addNav(financeMenu, user, "menu.finance.packages", NavTarget.PACKAGE);
         addNav(financeMenu, user, "menu.finance.payments", NavTarget.FINANCE);
+        addNav(financeMenu, user, "menu.finance.expenses", NavTarget.EXPENSE);
         addIfNotEmpty(financeMenu);
 
         JMenu reportMenu = new JMenu(text("menu.report"));
