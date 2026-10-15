@@ -10,11 +10,14 @@ import com.paze.pilates.desktop.ui.reservation.TodayLessonsPanel;
 import com.paze.pilates.desktop.ui.shared.NotificationBar;
 import com.paze.pilates.dto.BusinessException;
 import com.paze.pilates.dto.DailySummaryDto;
+import com.paze.pilates.dto.LessonDto;
 import com.paze.pilates.dto.Permission;
 import com.paze.pilates.service.AuthService;
 import com.paze.pilates.service.DashboardService;
+import com.paze.pilates.service.LessonService;
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import javax.swing.BorderFactory;
@@ -35,6 +38,7 @@ public class DashboardPanel extends JPanel {
     private final MessageSource messages;
     private final AuthService authService;
     private final DashboardService dashboardService;
+    private final LessonService lessonService;
     private final NotificationBar notificationBar;
     private final TodayLessonsPanel todayLessons;
     private final boolean admin;
@@ -54,11 +58,12 @@ public class DashboardPanel extends JPanel {
     private final NumberFormat moneyFmt = NumberFormat.getNumberInstance(Locale.getDefault());
 
     public DashboardPanel(MessageSource messages, AuthService authService, DashboardService dashboardService,
-                          NotificationBar notificationBar,
+                          LessonService lessonService, NotificationBar notificationBar,
                           ObjectProvider<TodayLessonsPanel> todayLessonsProvider) {
         this.messages = messages;
         this.authService = authService;
         this.dashboardService = dashboardService;
+        this.lessonService = lessonService;
         this.notificationBar = notificationBar;
         this.admin = authService.getCurrentUser().map(u -> u.has(Permission.STUDIO_MANAGE)).orElse(false);
         moneyFmt.setMinimumFractionDigits(2);
@@ -74,10 +79,8 @@ public class DashboardPanel extends JPanel {
         add(buildHeader(), BorderLayout.NORTH);
         JPanel body = new JPanel(new BorderLayout(0, 28));
         body.setOpaque(false);
-        // Özet kartları yalnızca yöneticiye; bugünkü dersler herkese (hoca kendi derslerini görür).
-        if (admin) {
-            body.add(buildStatCards(), BorderLayout.NORTH);
-        }
+        // Yönetici tüm stüdyonun özetini, hoca yalnızca kendi bugünkü ders ve katılımcı sayısını görür.
+        body.add(admin ? buildStatCards() : buildInstructorCards(), BorderLayout.NORTH);
         body.add(todayLessons, BorderLayout.CENTER);
         add(body, BorderLayout.CENTER);
     }
@@ -87,7 +90,32 @@ public class DashboardPanel extends JPanel {
         todayLessons.reload();
         if (admin) {
             reloadSummary();
+        } else {
+            reloadMyDay();
         }
+    }
+
+    private void reloadMyDay() {
+        new SwingWorker<List<LessonDto>, Void>() {
+            @Override protected List<LessonDto> doInBackground() {
+                return lessonService.findMyLessonsOn(LocalDate.now());
+            }
+            @Override protected void done() {
+                try {
+                    List<LessonDto> lessons = get();
+                    lessonsValue.setText(String.valueOf(lessons.size()));
+                    lessonsHint.setText(format("dashboard.hint.completed",
+                            lessons.stream().filter(LessonDto::completed).count()));
+                    studentsValue.setText(String.valueOf(lessons.stream().mapToInt(LessonDto::participantCount).sum()));
+                    studentsHint.setText(text("dashboard.hint.my_participants"));
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException ex) {
+                    notificationBar.showError(ex.getCause() instanceof BusinessException be
+                            ? text(be.getMessage()) : text("error.unexpected"));
+                }
+            }
+        }.execute();
     }
 
     private void reloadSummary() {
@@ -143,6 +171,24 @@ public class DashboardPanel extends JPanel {
 
         panel.add(textPanel, BorderLayout.WEST);
         return panel;
+    }
+
+    private JPanel buildInstructorCards() {
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+
+        JLabel sectionTitle = new JLabel(text("dashboard.today"));
+        sectionTitle.setFont(sectionTitle.getFont().deriveFont(Font.BOLD, 14f));
+        sectionTitle.setForeground(new Color(71, 85, 105));
+        sectionTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 16, 0));
+        wrapper.add(sectionTitle, BorderLayout.NORTH);
+
+        JPanel cards = new JPanel(new GridLayout(1, 4, 16, 0));
+        cards.setOpaque(false);
+        cards.add(buildCard(text("dashboard.stat.my_lessons"), lessonsValue, lessonsHint, new Color(219, 234, 254), new Color(37, 99, 235)));
+        cards.add(buildCard(text("dashboard.stat.my_participants"), studentsValue, studentsHint, new Color(220, 252, 231), new Color(22, 163, 74)));
+        wrapper.add(cards, BorderLayout.CENTER);
+        return wrapper;
     }
 
     private JPanel buildStatCards() {
