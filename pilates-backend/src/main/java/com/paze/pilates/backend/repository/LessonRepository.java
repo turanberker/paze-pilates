@@ -37,4 +37,7 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
             """)
     boolean existsInstructorOverlap(@Param("instructorId") Long instructorId, @Param("date") LocalDate date,
                                     @Param("start") LocalTime start, @Param("end") LocalTime end);
+
+    /** Verilen günden önceki, tamamlanmamış ders sayısı. */
+    long countByLessonDateBeforeAndCompletedAtIsNull(LocalDate date);
 }

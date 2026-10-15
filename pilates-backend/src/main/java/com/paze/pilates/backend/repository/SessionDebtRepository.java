@@ -29,4 +29,8 @@ public interface SessionDebtRepository extends JpaRepository<SessionDebt, Long> 
             group by d.student.id
             """)
     List<Object[]> countByStudentIds(@Param("studentIds") Collection<Long> studentIds);
+
+    /** Seans borcu olan tekil öğrenci sayısı. */
+    @Query("select count(distinct d.student.id) from SessionDebt d")
+    long countDebtStudents();
 }

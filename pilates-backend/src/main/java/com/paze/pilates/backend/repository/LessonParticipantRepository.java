@@ -39,4 +39,11 @@ public interface LessonParticipantRepository extends JpaRepository<LessonPartici
             """)
     boolean existsStudentOverlap(@Param("studentId") Long studentId, @Param("date") LocalDate date,
                                  @Param("start") LocalTime start, @Param("end") LocalTime end);
+
+    /** Günün derslerine eklenmiş tekil öğrenci sayısı. */
+    @Query("""
+            select count(distinct p.student.id) from LessonParticipant p
+            where p.lesson.lessonDate = :date
+            """)
+    long countDistinctStudentsOn(@Param("date") LocalDate date);
 }
