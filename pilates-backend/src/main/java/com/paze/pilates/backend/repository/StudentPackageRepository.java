@@ -1,6 +1,8 @@
 package com.paze.pilates.backend.repository;
 
 import com.paze.pilates.backend.domain.StudentPackage;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -37,4 +39,34 @@ public interface StudentPackageRepository extends JpaRepository<StudentPackage, 
     List<StudentPackage> search(@Param("term") String term,
                                 @Param("onlyRemaining") boolean onlyRemaining,
                                 @Param("onlyFinished") boolean onlyFinished);
+
+    /** Verilen gün ödemesi alınan paketlerin fiyat toplamı. */
+    @Query("""
+            select coalesce(sum(p.price), 0) from StudentPackage sp join sp.sessionPackage p
+            where sp.paid = true and sp.paymentDate = :date
+            """)
+    BigDecimal sumPriceCollectedOn(@Param("date") LocalDate date);
+
+    /** Verilen gün ödemesi alınan paket sayısı. */
+    @Query("select count(sp) from StudentPackage sp where sp.paid = true and sp.paymentDate = :date")
+    long countCollectedOn(@Param("date") LocalDate date);
+
+    /** Ödemesi alınmamış paketlerin fiyat toplamı. */
+    @Query("""
+            select coalesce(sum(p.price), 0) from StudentPackage sp join sp.sessionPackage p
+            where sp.paid = false
+            """)
+    BigDecimal sumPriceUnpaid();
+
+    /** Ödemesi alınmamış paket sayısı. */
+    @Query("select count(sp) from StudentPackage sp where sp.paid = false")
+    long countUnpaid();
+
+    /** Seansı bitmemiş ve kalanı en fazla {@code maxRemaining} olan paket sayısı. */
+    @Query("""
+            select count(sp) from StudentPackage sp
+            where sp.usedSessions < sp.totalSessions
+              and sp.totalSessions - sp.usedSessions <= :maxRemaining
+            """)
+    long countExpiring(@Param("maxRemaining") int maxRemaining);
 }
